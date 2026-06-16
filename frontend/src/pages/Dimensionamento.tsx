@@ -27,18 +27,18 @@ type ModoDimensionamento = "projeto_novo" | "retrofit" | "avancado";
 const MODOS: { key: ModoDimensionamento; label: string; descricao: string }[] = [
   {
     key: "projeto_novo",
-    label: "Projeto Novo",
-    descricao: "Dimensionamento a partir da potência e autonomia desejadas.",
+    label: "Dimensionamento Padrao",
+    descricao: "Utilize este modo para dimensionar uma bateria a partir da potencia dos motores, autonomia desejada e perfil de utilizacao do equipamento.",
   },
   {
     key: "retrofit",
     label: "Retrofit",
-    descricao: "Substituição de bateria de chumbo-ácido por LiFePO4.",
+    descricao: "Utilize este modo para substituir ou atualizar uma bateria existente utilizando os dados atuais do equipamento.",
   },
   {
     key: "avancado",
-    label: "Avançado",
-    descricao: "Cálculo físico por trechos de operação (ciclo real).",
+    label: "Dimensionamento Avancado",
+    descricao: "Utilize este modo para simular o consumo real do equipamento atraves de peso, velocidade, rampas, aceleracoes e ciclos de operacao.",
   },
 ];
 
