@@ -211,9 +211,9 @@ export default function Dimensionamento() {
           type="button"
           onClick={handleCalcular}
           disabled={carregando}
-          className="w-full py-3 text-base sm:w-auto sm:px-10"
+          className="w-full py-4 text-base font-bold tracking-wide sm:w-auto sm:px-14"
         >
-          {carregando ? "Calculando..." : "Calcular"}
+          {carregando ? "Calculando..." : "Calcular Dimensionamento"}
         </Button>
         {erro && <p className="text-sm text-red-600">{erro}</p>}
       </div>

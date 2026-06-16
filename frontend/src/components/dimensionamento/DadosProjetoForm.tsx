@@ -3,16 +3,18 @@ import Input from "../ui/Input";
 import type { TipoProjeto } from "../../types/dimensionamento";
 
 const TENSOES_PADRAO = [12, 24, 36, 48, 60, 72];
-
 export const APLICACOES = [
-  { value: "carrinho_golfe",       label: "Carrinho de golfe",     fatorRef: "25% a 35%" },
-  { value: "plataforma_elevadora", label: "Plataforma elevatória", fatorRef: "20% a 35%" },
-  { value: "lavadora_piso",        label: "Lavadora de piso",      fatorRef: "50% a 70%" },
-  { value: "empilhadeira",         label: "Empilhadeira elétrica", fatorRef: "60% a 80%" },
-  { value: "rebocador",            label: "Rebocador elétrico",    fatorRef: "70% a 90%" },
-  { value: "agv",                  label: "AGV / AMR",             fatorRef: "40% a 70%" },
-  { value: "uso_continuo",         label: "Uso contínuo",          fatorRef: "90% a 100%" },
-  { value: "personalizada",        label: "Outra / Personalizada", fatorRef: null },
+  { value: "carrinho_golfe",       label: "Carrinho de golfe",       fatorRef: "25% a 35%" },
+  { value: "empilhadeira",         label: "Empilhadeira eletrica",   fatorRef: "60% a 80%" },
+  { value: "plataforma_elevadora", label: "Plataforma elevatorio",   fatorRef: "20% a 35%" },
+  { value: "lavadora_piso",        label: "Lavadora de piso",        fatorRef: "50% a 70%" },
+  { value: "rebocador",            label: "Rebocador eletrico",      fatorRef: "70% a 90%" },
+  { value: "agv",                  label: "AGV / AMR",               fatorRef: "40% a 70%" },
+  { value: "retroescavadeira",     label: "Retroescavadeira",        fatorRef: "30% a 50%" },
+  { value: "motorhome",            label: "Motorhome",               fatorRef: "15% a 30%" },
+  { value: "sistema_solar",        label: "Sistema solar",           fatorRef: "80% a 100%" },
+  { value: "uso_continuo",         label: "Uso continuo",            fatorRef: "90% a 100%" },
+  { value: "outro",                label: "Outro",                   fatorRef: null },
 ] as const;
 
 interface DadosProjetoFormProps {
