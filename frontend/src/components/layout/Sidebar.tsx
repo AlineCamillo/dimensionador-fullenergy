@@ -2,46 +2,46 @@ import { NavLink } from "react-router-dom";
 import { useEmpresaConfig } from "../../hooks/useEmpresaConfig";
 
 const LINKS = [
-  { to: "/dashboard",        label: "Dashboard" },
-  { to: "/dimensionamento",  label: "Dimensionamento" },
-  { to: "/projetos",         label: "Projetos" },
-  { to: "/relatorios",       label: "Relatórios" },
-  { to: "/configuracoes",    label: "Configurações" },
+  { to: "/dashboard",       label: "Dashboard" },
+  { to: "/dimensionamento", label: "Dimensionamento" },
+  { to: "/projetos",        label: "Projetos" },
+  { to: "/relatorios",      label: "Relatorios" },
+  { to: "/configuracoes",   label: "Configuracoes" },
 ];
 
 /**
  * Menu lateral do sistema.
  *
- * Cabecalho:
- *   - Exibe a logo cadastrada em Configuracoes (useEmpresaConfig) se disponivel.
- *   - Fallback: quadrado amarelo FullEnergy.
- *   - Nome exibido: empresa.nomeFantasia ou "FullEnergy" se nao cadastrado.
- *   - Subtitulo fixo: "Dimensionador LiFePO4".
+ * Cabecalho centralizado:
+ *   - Logo h-16 w-16 se cadastrada, fallback: quadrado amarelo com monograma "FE".
+ *   - Nome da empresa centralizado abaixo da logo.
+ *   - Subtitulo "Dimensionador LiFePO4" abaixo do nome.
  */
 export default function Sidebar() {
   const { empresa } = useEmpresaConfig();
-
   const nomeExibido = empresa.nomeFantasia.trim() || "FullEnergy";
 
   return (
     <aside className="flex h-screen w-64 flex-shrink-0 flex-col bg-fullenergy-black text-fullenergy-white">
 
-      {/* Cabecalho: logo + nome */}
-      <div className="flex items-center gap-3 border-b border-white/10 px-6 py-5">
+      {/* Cabecalho: logo centralizada + nome + subtitulo */}
+      <div className="flex flex-col items-center gap-3 border-b border-white/10 px-6 py-7">
         {empresa.logoDataUrl ? (
           <img
             src={empresa.logoDataUrl}
             alt={`Logo ${nomeExibido}`}
-            className="h-8 w-8 rounded-sm object-contain"
+            className="h-16 w-16 rounded-lg object-contain"
           />
         ) : (
-          <span className="inline-block h-8 w-8 flex-shrink-0 rounded-sm bg-fullenergy-yellow" />
+          <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-fullenergy-yellow">
+            <span className="font-heading text-2xl font-black text-fullenergy-black">FE</span>
+          </div>
         )}
-        <div className="min-w-0">
-          <p className="truncate font-heading text-base font-bold leading-tight text-white">
+        <div className="text-center">
+          <p className="font-heading text-base font-bold leading-tight text-white">
             {nomeExibido}
           </p>
-          <p className="text-xs text-gray-400">Dimensionador LiFePO4</p>
+          <p className="mt-0.5 text-xs text-gray-400">Dimensionador LiFePO4</p>
         </div>
       </div>
 
@@ -69,6 +69,7 @@ export default function Sidebar() {
         <p>{nomeExibido} &copy; {new Date().getFullYear()}</p>
         <p>Energia, Eletromobilidade e Solucoes Industriais</p>
       </div>
+
     </aside>
   );
 }
