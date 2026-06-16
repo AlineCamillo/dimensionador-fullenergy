@@ -177,7 +177,7 @@ export function formularioParaEquipamento(f: EquipamentoFormulario): Equipamento
 /** Aplicações disponíveis no formulário avançado. */
 export const APLICACOES_AVANCADO = [
   "Empilhadeira Eletrica",
-  "Plataforma Elevatorio",
+  "Plataforma Elevatória",
   "Rebocador Eletrico",
   "AGV / AMR",
   "Carrinho de Golfe",
@@ -226,7 +226,7 @@ export const REFERENCIAS_INCLINACAO: Record<string, ReferenciaInclinacao> = {
     observacao:
       "Lavagem ocorre em plano. Rampas de acesso entre setores: 3-7 graus. Max Nilfisk SC6000: 7 graus.",
   },
-  "Plataforma Elevatorio": {
+  "Plataforma Elevatória": {
     plano:   0,
     subida:  2,
     descida: -2,

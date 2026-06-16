@@ -106,8 +106,8 @@ export default function Dashboard() {
       {/* Rodape informativo */}
       <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-4">
         <p className="text-sm text-fullenergy-gray">
-          <span className="font-semibold text-fullenergy-black">Pre-dimensionamento tecnico: </span>
-          resultados baseados nos parametros informados. Revise as premissas do projeto antes da especificacao final.
+          <span className="font-semibold text-fullenergy-black">Pré-Dimensionamento Técnico: </span>
+          Resultados baseados nos parâmetros informados. Revise as premissas do projeto antes da especificação final.
         </p>
       </div>
 

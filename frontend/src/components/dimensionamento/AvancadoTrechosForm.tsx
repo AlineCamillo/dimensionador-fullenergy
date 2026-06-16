@@ -217,7 +217,7 @@ export default function AvancadoTrechosForm({
                           className="rounded-md border border-blue-300 bg-blue-50 px-2 py-2 text-xs font-medium text-blue-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
                         >
                           <option value="" disabled>
-                            Referência ▾
+                            Aplicar referência ▾
                           </option>
                           <option value="plano">
                             Plano ({ref.plano}°)
@@ -271,8 +271,8 @@ export default function AvancadoTrechosForm({
       {/* Legenda geral de referências */}
       {ref && (
         <p className="mt-3 text-xs text-fullenergy-gray">
-          Valores de referência para apoio ao preenchimento. Ajuste conforme a condição real da
-          operação.
+          Valores de referência de engenharia para apoio ao preenchimento. Ajuste conforme a
+          condição real da operação e do ambiente de trabalho.
         </p>
       )}
     </section>

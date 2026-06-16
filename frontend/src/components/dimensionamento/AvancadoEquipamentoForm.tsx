@@ -158,7 +158,7 @@ export default function AvancadoEquipamentoForm({
             <div className="flex items-end pb-1">
               <div className="w-full rounded-lg border border-fullenergy-yellow/50 bg-fullenergy-yellow/10 px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
-                  Massa Total nos Cálculos
+                  Massa Total Considerada
                 </p>
                 <p className="mt-0.5 font-heading text-xl font-bold text-fullenergy-black">
                   {massaTotal.toLocaleString("pt-BR")} kg
@@ -204,13 +204,16 @@ export default function AvancadoEquipamentoForm({
             onChange={(e) => set("rendimento", Number(e.target.value))}
           />
           <Input
-            label="Coef. de Rolamento (CRR)"
+            label="Coeficiente de Rolamento (CRR)"
             type="number"
             step="0.001"
             min="0"
             value={value.crr}
             onChange={(e) => set("crr", Number(e.target.value))}
           />
+          <p className="mt-1 text-xs text-fullenergy-gray">
+            Representa a resistência ao deslocamento causada pelo piso e pelos pneus.
+          </p>
         </div>
 
         {/* Referências de CRR */}
