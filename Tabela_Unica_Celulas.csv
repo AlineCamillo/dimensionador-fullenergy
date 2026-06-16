@@ -1,0 +1,8 @@
+Marca,Modelo,Capacidade (Ah),Corrente continua (A),Corrente pico (A),C-rate continuo,C-rate pico,Peso (kg),Ciclos,Tensao nominal (V),Tensao maxima (V),Tensao minima (V)
+REPT BATTERO,CB56-104Ah,104,208,"520 (5C/10s desc.) / 312 (3C carga)",2C,5C,1.92,">=2000 (25 graus C, 1C, 80% SOH)",3.2,3.65,"2.5 (T>0C) / 2.0 (T<=0C)"
+CALB,L173F163,163,163,"326 (2C/3min) / 489 (3C/30s)",1C,"2C (pulso longo) / 3C (pulso curto)",3.19,">=4000 (1C, 80% capacidade)",3.2,"3.65 (padrao) / 3.8 (absoluto max)",2.5
+XDLE,54173204 (CBA54173204-230Ah),230,460,690,2C,3C,4.10,">=4500 (25 graus C, 1C, 70% capacidade inicial)",3.2,3.65,"2.5 (T>0C) / 2.0 (T<=0C)"
+EVE,LF230,230,230,690,1C,3C,4.14,"4000 @25C / 2000 @45C (80% SOH)",3.2,3.65,"2.5 (T>0C) / 2.0 (T<=0C)"
+Gotion,IFP20100140A-27Ah,27,108,135,4C,5C,0.596,">=3000 @25C/1C; >=1500 @45C/1C; >=800 @55C/1C",3.2,"3.65 (operacao) / 3.9 (max absoluto)","2.0 (operacao) / 1.8 (min absoluto)"
+Great Power,GSP3914895F,50,50,100,1.0C,2.0C,1.10,">=3500 @25C (1C/1C, 80%) / >=1800 @45C (80%)",3.2,3.65,"2.5 (T>0C) / 2.0 (T<=0C)"
+CBAK,32140FS,15,30,90,2C,6C,0.29,">=2500 (25 graus C, 0.5C/0.5C, 80% SOH)",3.2,"3.6 (padrao) / 3.8 (absoluto max)",2.0
