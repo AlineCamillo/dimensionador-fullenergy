@@ -39,13 +39,6 @@ function CardAtalho({ titulo, descricao, onClick, destaque = false }: CardAtalho
 
 /**
  * Dashboard — tela inicial do Dimensionador FullEnergy.
- *
- * Exibe:
- *   - Logo da empresa (se cadastrada em Configuracoes) ou logotipo padrao FullEnergy.
- *   - Titulo e subtitulo institucionais.
- *   - 3 cards de atalho: Novo Dimensionamento, Projetos, Configuracoes.
- *
- * Sem graficos nem integracao com banco de dados nesta etapa.
  */
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -113,9 +106,8 @@ export default function Dashboard() {
       {/* Rodape informativo */}
       <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-4">
         <p className="text-sm text-fullenergy-gray">
-          <span className="font-semibold text-fullenergy-black">Pre-dimensionamento: </span>
-          os resultados sao estimativas tecnicas baseadas nos dados informados.
-          Sempre valide com a Engenharia antes da especificacao final.
+          <span className="font-semibold text-fullenergy-black">Pre-dimensionamento tecnico: </span>
+          resultados baseados nos parametros informados. Revise as premissas do projeto antes da especificacao final.
         </p>
       </div>
 

@@ -120,3 +120,152 @@ export interface ResultadoCicloAvancado {
   /** Distância estimada (m) = Σ(vm × tempo_total) por trecho */
   distancia_total_m: number;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FORMULÁRIO (dados de entrada da UI — NÃO alterar EquipamentoInput acima)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Tipo exclusivo do formulário de entrada do Dimensionamento Avançado.
+ * Separa massa_base e carga_kg (soma = massa usada no motor).
+ * Converta para EquipamentoInput antes de chamar calcularCicloAvancado().
+ */
+export interface EquipamentoFormulario {
+  /** Aplicação do equipamento (exibição/contexto — não afeta cálculo) */
+  aplicacao: string;
+  /** Tensão nominal da bateria (V) */
+  tensao: number;
+  /** Peso do equipamento sem a carga transportada (kg) */
+  massa_base: number;
+  /** Carga média movimentada durante o ciclo operacional (kg) */
+  carga_kg: number;
+  /** Raio efetivo da roda de tração (m) */
+  raio_roda: number;
+  /** Relação de redução da transmissão */
+  reducao: number;
+  /** Área frontal do veículo (m²) */
+  area_frontal: number;
+  /** Rendimento total do sistema motor + transmissão (0 a 1) */
+  rendimento: number;
+  /** Coeficiente de resistência ao rolamento */
+  crr: number;
+  // ── Parâmetros avançados de engenharia (seção recolhível) ──
+  /** Coeficiente de arrasto aerodinâmico (Cd) */
+  cd: number;
+  /** Densidade do ar (kg/m³) */
+  den_ar: number;
+  /** Aceleração da gravidade (m/s²) */
+  gravidade: number;
+}
+
+/** Converte EquipamentoFormulario → EquipamentoInput para o motor de cálculo. */
+export function formularioParaEquipamento(f: EquipamentoFormulario): EquipamentoInput {
+  return {
+    tensao:       f.tensao,
+    massa:        f.massa_base + f.carga_kg,
+    raio_roda:    f.raio_roda,
+    reducao:      f.reducao,
+    area_frontal: f.area_frontal,
+    rendimento:   f.rendimento,
+    crr:          f.crr,
+    cd:           f.cd,
+    den_ar:       f.den_ar,
+    gravidade:    f.gravidade,
+  };
+}
+
+/** Aplicações disponíveis no formulário avançado. */
+export const APLICACOES_AVANCADO = [
+  "Empilhadeira Eletrica",
+  "Plataforma Elevatorio",
+  "Rebocador Eletrico",
+  "AGV / AMR",
+  "Carrinho de Golfe",
+  "Lavadora de Piso",
+  "Retroescavadeira",
+  "Outro",
+] as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REFERÊNCIAS TÉCNICAS DE INCLINAÇÃO (uso exclusivo da UI — não afeta motor)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Valores de referência de inclinação típicos para uma aplicação. */
+export interface ReferenciaInclinacao {
+  /** Inclinação em piso plano (°) */
+  plano: number;
+  /** Inclinação em subida típica de operação (°) */
+  subida: number;
+  /** Inclinação em descida típica de operação (°) — valor negativo */
+  descida: number;
+  /** Observação de contexto de uso para exibição ao engenheiro */
+  observacao: string;
+}
+
+/**
+ * Tabela de referências técnicas de inclinação por aplicação FullEnergy.
+ *
+ * Fonte: estudo técnico baseado em normas OSHA, manuais de fabricantes
+ * (Nilfisk, Linde, Jungheinrich, Yale, Club Car) e literatura de piso industrial.
+ *
+ * Os valores representam condições reais de operação, NÃO capacidade máxima
+ * (gradeability) de catálogo. Sempre revisar conforme a condição do projeto.
+ */
+export const REFERENCIAS_INCLINACAO: Record<string, ReferenciaInclinacao> = {
+  "AGV / AMR": {
+    plano:   0,
+    subida:  1,
+    descida: -1,
+    observacao:
+      "AGVs exigem piso superplano. Operacao tipica em 0-1 grau. Rampa acima de 2% compromete navegacao.",
+  },
+  "Lavadora de Piso": {
+    plano:   0,
+    subida:  3,
+    descida: -3,
+    observacao:
+      "Lavagem ocorre em plano. Rampas de acesso entre setores: 3-7 graus. Max Nilfisk SC6000: 7 graus.",
+  },
+  "Plataforma Elevatorio": {
+    plano:   0,
+    subida:  2,
+    descida: -2,
+    observacao:
+      "Plataforma elevada exige piso plano (norma ANSI A92). Deslocamento baixado: ate 3 graus tipico.",
+  },
+  "Empilhadeira Eletrica": {
+    plano:   0,
+    subida:  6,
+    descida: -6,
+    observacao:
+      "Corredor em plano. Rampa de doca de carga tipica: 10-15% (6-9 graus). OSHA: cuidado acima de 10%.",
+  },
+  "Rebocador Eletrico": {
+    plano:   0,
+    subida:  3,
+    descida: -3,
+    observacao:
+      "Rota interna em plano. Cruzamentos de rampa: 3-5 graus tipico. Rampa de doca: ate 6 graus.",
+  },
+  "Carrinho de Golfe": {
+    plano:   2,
+    subida:  8,
+    descida: -6,
+    observacao:
+      "Terreno de campo variado. Caminho de carrinho (USGA): max 5%. Relevo tipico de fairway: 5-10%.",
+  },
+  "Retroescavadeira": {
+    plano:   2,
+    subida:  15,
+    descida: -10,
+    observacao:
+      "Patio e vias em plano. Posicionamento em talude de obra: 10-20 graus comum. Modelar em trechos distintos.",
+  },
+  "Outro": {
+    plano:   0,
+    subida:  0,
+    descida: 0,
+    observacao:
+      "Aplicacao personalizada. Consulte dados tecnicos do equipamento e condicoes do projeto.",
+  },
+};

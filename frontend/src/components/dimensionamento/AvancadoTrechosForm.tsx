@@ -1,5 +1,7 @@
+import { useState } from "react";
 import Input from "../ui/Input";
 import type { TrechoInput } from "../../types/avancado";
+import { REFERENCIAS_INCLINACAO } from "../../types/avancado";
 
 /** TrechoInput com ID local para controle de chaves React. */
 export interface TrechoFormulario extends TrechoInput {
@@ -22,46 +24,65 @@ export function novoTrechoFormulario(numero: number): TrechoFormulario {
 interface AvancadoTrechosFormProps {
   trechos: TrechoFormulario[];
   onChange: (trechos: TrechoFormulario[]) => void;
+  /** Aplicação selecionada no formulário de equipamento — usada para as referências. */
+  aplicacao?: string;
 }
 
 /**
  * Formulário de trechos de operação para o Dimensionamento Avançado.
  * Permite adicionar e remover trechos (mínimo 1).
- * Cada trecho define um segmento de velocidade, aceleração e ângulo.
+ * Exibe dropdown de referência técnica de inclinação por trecho.
  */
 export default function AvancadoTrechosForm({
   trechos,
   onChange,
+  aplicacao = "",
 }: AvancadoTrechosFormProps) {
+  // Controla o valor do select "Aplicar referência" de cada trecho
+  // — resetado para "" após cada seleção para permitir reutilização.
+  const [refSelecionadas, setRefSelecionadas] = useState<Record<string, string>>({});
+
+  const ref = aplicacao ? (REFERENCIAS_INCLINACAO[aplicacao] ?? null) : null;
+
   function adicionarTrecho() {
     onChange([...trechos, novoTrechoFormulario(trechos.length + 1)]);
   }
 
   function removerTrecho(id: string) {
-    if (trechos.length <= 1) return; // mínimo 1 trecho
+    if (trechos.length <= 1) return;
     onChange(trechos.filter((t) => t.id !== id));
   }
 
-  function atualizarTrecho<K extends keyof TrechoFormulario>(
+  function atualizar<K extends keyof TrechoFormulario>(
     id: string,
     campo: K,
     valor: TrechoFormulario[K],
   ) {
-    onChange(
-      trechos.map((t) => (t.id === id ? { ...t, [campo]: valor } : t)),
-    );
+    onChange(trechos.map((t) => (t.id === id ? { ...t, [campo]: valor } : t)));
+  }
+
+  function aplicarRef(id: string, tipo: string) {
+    if (!ref) return;
+    const angulo =
+      tipo === "plano"   ? ref.plano   :
+      tipo === "subida"  ? ref.subida  :
+      tipo === "descida" ? ref.descida :
+      0;
+    atualizar(id, "angulo_graus", angulo);
+    // Reset do select para permitir reaplicação
+    setRefSelecionadas((prev) => ({ ...prev, [id]: "" }));
   }
 
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      {/* Cabeçalho com botão Adicionar */}
+      {/* Cabeçalho */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-heading text-lg font-semibold text-fullenergy-black">
             Trechos de Operação
           </h2>
           <p className="mt-1 text-sm text-fullenergy-gray">
-            Defina cada segmento do ciclo operacional do equipamento.
+            Defina cada condição operacional do ciclo do equipamento.
           </p>
         </div>
         <button
@@ -101,101 +122,159 @@ export default function AvancadoTrechosForm({
             </div>
 
             {/* Campos do trecho */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {/* Descrição — ocupa 2 colunas no desktop */}
-              <div className="flex flex-col gap-1 lg:col-span-3">
+            <div className="space-y-3">
+
+              {/* Nome da Operação — linha inteira */}
+              <div>
                 <label className="text-sm font-medium text-fullenergy-gray">
-                  Descrição do Trecho
+                  Nome da Operação
                 </label>
                 <input
                   type="text"
                   value={trecho.descricao}
-                  onChange={(e) =>
-                    atualizarTrecho(trecho.id, "descricao", e.target.value)
-                  }
-                  placeholder="Ex.: Aceleração em rampa, Velocidade constante no plano..."
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-fullenergy-black focus:border-fullenergy-accent focus:outline-none focus:ring-1 focus:ring-fullenergy-accent"
+                  onChange={(e) => atualizar(trecho.id, "descricao", e.target.value)}
+                  placeholder="Ex.: Deslocamento em plano, Subida carregado, Retorno vazio..."
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-fullenergy-black focus:border-fullenergy-accent focus:outline-none focus:ring-1 focus:ring-fullenergy-accent"
                 />
               </div>
 
-              <Input
-                label="Velocidade Inicial (km/h)"
-                type="number"
-                step="1"
-                min="0"
-                value={trecho.vi_kmh}
-                onChange={(e) =>
-                  atualizarTrecho(trecho.id, "vi_kmh", Number(e.target.value))
-                }
-              />
-              <Input
-                label="Velocidade Final (km/h)"
-                type="number"
-                step="1"
-                min="0"
-                value={trecho.vf_kmh}
-                onChange={(e) =>
-                  atualizarTrecho(trecho.id, "vf_kmh", Number(e.target.value))
-                }
-              />
-              <Input
-                label="Tempo de Aceleração (s)"
-                type="number"
-                step="1"
-                min="0"
-                value={trecho.tempo_acel_s}
-                onChange={(e) =>
-                  atualizarTrecho(
-                    trecho.id,
-                    "tempo_acel_s",
-                    Number(e.target.value),
-                  )
-                }
-              />
-              <Input
-                label="Ângulo da Rampa (°)"
-                type="number"
-                step="0.5"
-                min="-45"
-                max="45"
-                value={trecho.angulo_graus}
-                onChange={(e) =>
-                  atualizarTrecho(
-                    trecho.id,
-                    "angulo_graus",
-                    Number(e.target.value),
-                  )
-                }
-              />
-              <Input
-                label="Tempo Total do Trecho (s)"
-                type="number"
-                step="1"
-                min="1"
-                value={trecho.tempo_total_s}
-                onChange={(e) =>
-                  atualizarTrecho(
-                    trecho.id,
-                    "tempo_total_s",
-                    Number(e.target.value),
-                  )
-                }
-              />
-
-              {/* Dica: ângulo 0 = plano */}
-              <div className="flex items-end pb-1 text-xs text-fullenergy-gray lg:col-span-1">
-                Ângulo: positivo = subida · negativo = descida · 0° = plano
+              {/* Velocidades */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Input
+                    label="Velocidade Inicial (km/h)"
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={trecho.vi_kmh}
+                    onChange={(e) =>
+                      atualizar(trecho.id, "vi_kmh", Number(e.target.value))
+                    }
+                  />
+                  <p className="mt-1 text-xs text-fullenergy-gray">
+                    Velocidade ao entrar neste trecho.
+                  </p>
+                </div>
+                <div>
+                  <Input
+                    label="Velocidade Final (km/h)"
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={trecho.vf_kmh}
+                    onChange={(e) =>
+                      atualizar(trecho.id, "vf_kmh", Number(e.target.value))
+                    }
+                  />
+                  <p className="mt-1 text-xs text-fullenergy-gray">
+                    Velocidade ao sair deste trecho.
+                  </p>
+                </div>
               </div>
+
+              {/* Aceleração + Inclinação com referência */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Input
+                    label="Tempo para atingir a velocidade final (s)"
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={trecho.tempo_acel_s}
+                    onChange={(e) =>
+                      atualizar(trecho.id, "tempo_acel_s", Number(e.target.value))
+                    }
+                  />
+                  <p className="mt-1 text-xs text-fullenergy-gray">
+                    Utilize 0 quando não houver aceleração.
+                  </p>
+                </div>
+
+                {/* Inclinação + botão de referência */}
+                <div>
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <Input
+                        label="Inclinação da pista (°)"
+                        type="number"
+                        step="0.5"
+                        min="-45"
+                        max="45"
+                        value={trecho.angulo_graus}
+                        onChange={(e) =>
+                          atualizar(trecho.id, "angulo_graus", Number(e.target.value))
+                        }
+                      />
+                    </div>
+                    {ref && (
+                      <div className="pb-0.5">
+                        <select
+                          value={refSelecionadas[trecho.id] ?? ""}
+                          onChange={(e) => {
+                            if (e.target.value) aplicarRef(trecho.id, e.target.value);
+                          }}
+                          title="Aplicar valor de referência de inclinação"
+                          className="rounded-md border border-blue-300 bg-blue-50 px-2 py-2 text-xs font-medium text-blue-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        >
+                          <option value="" disabled>
+                            Referência ▾
+                          </option>
+                          <option value="plano">
+                            Plano ({ref.plano}°)
+                          </option>
+                          <option value="subida">
+                            Subida típica (+{ref.subida}°)
+                          </option>
+                          <option value="descida">
+                            Descida típica ({ref.descida}°)
+                          </option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-fullenergy-gray">
+                    0° = plano &nbsp;|&nbsp; positivo = subida &nbsp;|&nbsp; negativo = descida
+                  </p>
+                </div>
+              </div>
+
+              {/* Tempo total */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Input
+                    label="Tempo total nesta condição operacional (s)"
+                    type="number"
+                    step="1"
+                    min="1"
+                    value={trecho.tempo_total_s}
+                    onChange={(e) =>
+                      atualizar(trecho.id, "tempo_total_s", Number(e.target.value))
+                    }
+                  />
+                  <p className="mt-1 text-xs text-fullenergy-gray">
+                    Tempo que o equipamento permanece nesta operação.
+                  </p>
+                </div>
+              </div>
+
             </div>
           </div>
         ))}
       </div>
 
-      {/* Rodapé informativo */}
-      <p className="mt-3 text-xs text-fullenergy-gray">
-        Tempo de Aceleração: use 0 quando o veículo já entra no trecho em
-        velocidade constante. O Tempo Total do Trecho determina o consumo em Ah.
-      </p>
+      {trechos.length === 0 && (
+        <p className="mt-4 text-center text-sm text-fullenergy-gray">
+          Nenhum trecho cadastrado. Clique em + Adicionar Trecho para começar.
+        </p>
+      )}
+
+      {/* Legenda geral de referências */}
+      {ref && (
+        <p className="mt-3 text-xs text-fullenergy-gray">
+          Valores de referência para apoio ao preenchimento. Ajuste conforme a condição real da
+          operação.
+        </p>
+      )}
     </section>
   );
 }
