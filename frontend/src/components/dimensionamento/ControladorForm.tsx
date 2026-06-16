@@ -12,20 +12,25 @@ interface ControladorFormProps {
 }
 
 /**
- * Seção 4 - Controlador.
- * Campos: Corrente contínua e Corrente de pico do controlador, usados pela
- * API para gerar alertas (alertas_controlador) caso o dimensionamento
- * exceda os limites informados. Deixe em 0 caso não deseje validar.
+ * Seção — Controlador.
+ * Campos: Corrente contínua máxima e Corrente de pico máxima do controlador.
+ * Usados para validar se a bateria recomendada é compatível com o controlador
+ * existente. Lógica inalterada — 0 = sem validação.
  */
 export default function ControladorForm({ value, onChange }: ControladorFormProps) {
   return (
     <Section
       title="Controlador"
-      description="Limites do controlador para validação (opcional). Deixe 0 para não validar."
+      description="Limites do controlador para validação (opcional)."
     >
+      <p className="mb-4 text-sm text-fullenergy-gray">
+        Esses valores são usados apenas para validar se a bateria recomendada é
+        compatível com o controlador existente. Deixe em branco caso não deseje
+        realizar essa validação.
+      </p>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Input
-          label="Corrente contínua (A)"
+          label="Corrente contínua máxima do controlador (A)"
           type="number"
           step="1"
           min="0"
@@ -33,7 +38,7 @@ export default function ControladorForm({ value, onChange }: ControladorFormProp
           onChange={(e) => onChange({ ...value, i_cont: Number(e.target.value) })}
         />
         <Input
-          label="Corrente de pico (A)"
+          label="Corrente de pico máxima do controlador (A)"
           type="number"
           step="1"
           min="0"

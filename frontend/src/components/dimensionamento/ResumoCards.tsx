@@ -18,8 +18,8 @@ const PRIMARIO = "border-fullenergy-yellow bg-[#FEFCE8]";
 /**
  * Resumo do Sistema — o que a aplicacao exige do banco de baterias.
  *
- * Cards primarios (borda dourada): Corrente Maxima, Ah Necessario,
- * Energia Necessaria — os tres valores centrais para o dimensionamento.
+ * Cards primarios (borda dourada): Corrente Maxima Exigida, Capacidade
+ * Necessaria, Energia Necessaria.
  * Cards secundarios: dados complementares de tensao e serie.
  */
 export default function ResumoCards({ resumo }: ResumoCardsProps) {
@@ -29,14 +29,14 @@ export default function ResumoCards({ resumo }: ResumoCardsProps) {
         Resumo do Sistema
       </h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {/* Primarios: o que a aplicacao realmente precisa */}
+        {/* Primarios */}
         <Card
-          label="Corrente Maxima"
+          label="Corrente Maxima Exigida"
           value={`${fmt(resumo.i_max)} A`}
           className={PRIMARIO}
         />
         <Card
-          label="Ah Necessario"
+          label="Capacidade Necessaria"
           value={`${fmt(resumo.ah_necessario)} Ah`}
           className={PRIMARIO}
         />
@@ -45,7 +45,7 @@ export default function ResumoCards({ resumo }: ResumoCardsProps) {
           value={`${fmt(resumo.kwh_necessario)} kWh`}
           className={PRIMARIO}
         />
-        {/* Secundarios: contexto complementar */}
+        {/* Secundarios */}
         <Card label="Corrente Media"   value={`${fmt(resumo.i_media)} A`} />
         <Card label="Potencia Total"   value={`${fmt(resumo.potencia_total)} W`} />
         <Card label="Serie"            value={`${resumo.serie}S`} />

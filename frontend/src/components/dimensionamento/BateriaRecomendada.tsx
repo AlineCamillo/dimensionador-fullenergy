@@ -25,7 +25,6 @@ interface HeroMetricProps {
   helper?: string;
 }
 
-/** Metrica exibida dentro do Hero Card (fundo escuro). */
 function HeroMetric({ label, value, helper }: HeroMetricProps) {
   return (
     <div className="rounded-lg bg-white/10 p-3">
@@ -41,7 +40,6 @@ interface SubSectionProps {
   children: React.ReactNode;
 }
 
-/** Bloco secundario dentro da area de resultado. */
 function SubSection({ title, children }: SubSectionProps) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -57,12 +55,10 @@ function SubSection({ title, children }: SubSectionProps) {
  * Apresentacao da bateria recomendada (ou selecionada manualmente).
  *
  * Estrutura:
- *   1. Hero Card  — identidade da celula + 5 metricas principais do pack
+ *   1. Hero Card  — identidade da celula + metricas principais do pack
  *   2. Configuracao do Pack  — serie, paralelo, correntes, C-rates
- *   3. Dados Tecnicos da Celula  — fisicos + correntes unitarias + condicao de ciclos
- *   4. Margens  — margem de capacidade e de corrente vs. o exigido pela aplicacao
- *
- * Nenhum valor e recalculado aqui: todos vem diretamente da API.
+ *   3. Dados Tecnicos da Celula  — fisicos + correntes unitarias
+ *   4. Margens  — capacidade e corrente vs. o exigido pela aplicacao
  */
 export default function BateriaRecomendada({ celula, resumo }: BateriaRecomendadaProps) {
   if (!celula) {
@@ -77,6 +73,10 @@ export default function BateriaRecomendada({ celula, resumo }: BateriaRecomendad
 
   const margemCap  = ((celula.capacidade_pack / resumo.ah_necessario) - 1) * 100;
   const margemCont = ((celula.cont_pack / resumo.i_max) - 1) * 100;
+  const utilizacaoCorrRec = Number.isFinite(resumo.i_max / celula.cont_pack)
+    ? (resumo.i_max / celula.cont_pack) * 100
+    : 0;
+  const folgaCorrDisp = celula.cont_pack - resumo.i_max;
 
   return (
     <div className="space-y-4">
@@ -93,7 +93,6 @@ export default function BateriaRecomendada({ celula, resumo }: BateriaRecomendad
           {celula.serie}S &middot; {celula.paralelo}P &middot; {celula.total_celulas} celulas
         </p>
 
-        {/* 5 metricas: 2 colunas no mobile, 3 no tablet, 5 no desktop */}
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <HeroMetric
             label="Capacidade"
@@ -104,17 +103,17 @@ export default function BateriaRecomendada({ celula, resumo }: BateriaRecomendad
             value={`${fmt(celula.energia_pack)} kWh`}
           />
           <HeroMetric
-            label="Autonomia estimada"
+            label="Autonomia Estimada"
             value={`${fmt(celula.autonomia)} h`}
           />
           <HeroMetric
-            label="Peso do pack"
+            label="Peso do Pack"
             value={`${fmt(celula.peso_pack)} kg`}
           />
           <HeroMetric
-            label="Corrente continua"
+            label="Corrente Continua do Pack"
             value={`${fmt(celula.cont_pack)} A`}
-            helper={`DS: ${fmt(celula.cont_datasheet_pack)} A`}
+            helper={`Fabricante: ${fmt(celula.cont_datasheet_pack)} A`}
           />
         </div>
       </div>
@@ -122,78 +121,81 @@ export default function BateriaRecomendada({ celula, resumo }: BateriaRecomendad
       {/* ── Configuracao do Pack ────────────────────────────────────────── */}
       <SubSection title="Configuracao do Pack">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card label="Serie"  value={`${celula.serie}S`} />
-          <Card label="Paralelo" value={`${celula.paralelo}P`} />
-          <Card label="Total de celulas" value={`${celula.total_celulas}`} />
+          <Card label="Serie"            value={`${celula.serie}S`} />
+          <Card label="Paralelo"         value={`${celula.paralelo}P`} />
+          <Card label="Total de Celulas" value={`${celula.total_celulas}`} />
           <Card
-            label="Corrente de pico do pack"
+            label="Corrente de Pico do Pack"
             value={`${fmt(celula.pico_pack)} A`}
-            helper={`Datasheet: ${fmt(celula.pico_datasheet_pack)} A`}
+            helper={`Fabricante: ${fmt(celula.pico_datasheet_pack)} A`}
           />
-          <Card label="C-rate continuo" value={`${fmt(celula.c_rate_cont)} C`} />
-          <Card label="C-rate pico"     value={`${fmt(celula.c_rate_pico)} C`} />
-          <Card label="C-rate utilizado" value={`${fmt(celula.c_rate_uso)} C`} />
+          <Card label="C-rate Continuo"  value={`${fmt(celula.c_rate_cont)} C`} />
+          <Card label="C-rate de Pico"   value={`${fmt(celula.c_rate_pico)} C`} />
+          <Card label="C-rate Utilizado" value={`${fmt(celula.c_rate_uso)} C`} />
         </div>
       </SubSection>
 
       {/* ── Dados Tecnicos da Celula ────────────────────────────────────── */}
       <SubSection title="Dados Tecnicos da Celula">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card label="Peso unitario da celula" value={`${fmt(celula.peso)} kg`} />
+          <Card label="Peso Unitario da Celula" value={`${fmt(celula.peso)} kg`} />
           <Card
             label="Dimensoes (C x L x A)"
             value={`${celula.comprimento_mm} x ${celula.largura_mm} x ${celula.altura_mm} mm`}
           />
           <Card
-            label="Ciclos de vida"
+            label="Ciclos de Vida"
             value={`${celula.ciclos.toLocaleString("pt-BR")}`}
           />
           <Card
-            label="Cont. recomendada (celula)"
+            label="Corrente Continua Recomendada da Celula"
             value={`${fmt(celula.cont_recomendado)} A`}
-            helper={`Datasheet: ${fmt(celula.cont_datasheet)} A`}
+            helper={`Corrente Continua do Fabricante: ${fmt(celula.cont_datasheet)} A`}
           />
           <Card
-            label="Pico recomendado (celula)"
+            label="Corrente de Pico Recomendada da Celula"
             value={`${fmt(celula.pico_recomendado)} A`}
-            helper={`Datasheet: ${fmt(celula.pico_datasheet)} A`}
+            helper={`Corrente de Pico do Fabricante: ${fmt(celula.pico_datasheet)} A`}
           />
         </div>
 
-        {/* Condicao de ciclos: texto corrido horizontal, fora do grid */}
         <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
-            Condicao de ciclos
+            Condicao de Ciclos
           </p>
           <p className="mt-1 text-sm text-fullenergy-black">{celula.condicao_ciclos}</p>
         </div>
       </SubSection>
 
-      {/* ── Margens em Relacao ao Exigido ───────────────────────────────── */}
-      <SubSection title="Margens em Relacao ao Exigido">
+      {/* ── Margens e Utilizacao ────────────────────────────────────────── */}
+      <SubSection title="Margens e Utilizacao">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card
-            label="Margem de capacidade"
+            label="Margem de Capacidade"
             value={fmtPct(margemCap)}
             helper={`Pack ${fmt(celula.capacidade_pack)} Ah vs. exigido ${fmt(resumo.ah_necessario)} Ah`}
-            className={margemCap >= 0
-              ? "border-green-300 bg-green-50"
-              : "border-red-300 bg-red-50"}
           />
           <Card
-            label="Margem de corrente continua"
+            label="Margem de Corrente Continua"
             value={fmtPct(margemCont)}
             helper={`Pack ${fmt(celula.cont_pack)} A vs. exigido ${fmt(resumo.i_max)} A`}
-            className={margemCont >= 0
-              ? "border-green-300 bg-green-50"
-              : "border-red-300 bg-red-50"}
           />
           <Card
-            label="Corrente maxima exigida"
+            label="Utilizacao da Corrente Recomendada"
+            value={`${fmt(utilizacaoCorrRec, 1)} %`}
+            helper={`${fmt(resumo.i_max)} A de ${fmt(celula.cont_pack)} A disponiveis`}
+          />
+          <Card
+            label="Folga de Corrente Disponivel"
+            value={`${fmt(folgaCorrDisp)} A`}
+            helper={`Pack ${fmt(celula.cont_pack)} A menos exigido ${fmt(resumo.i_max)} A`}
+          />
+          <Card
+            label="Corrente Maxima Exigida"
             value={`${fmt(resumo.i_max)} A`}
           />
           <Card
-            label="Corrente media da aplicacao"
+            label="Corrente Media da Aplicacao"
             value={`${fmt(resumo.i_media)} A`}
           />
         </div>

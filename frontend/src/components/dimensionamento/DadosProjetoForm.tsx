@@ -1,6 +1,5 @@
 import Section from "../ui/Section";
 import Input from "../ui/Input";
-import type { TipoProjeto } from "../../types/dimensionamento";
 
 const TENSOES_PADRAO = [12, 24, 36, 48, 60, 72];
 export const APLICACOES = [
@@ -19,12 +18,10 @@ export const APLICACOES = [
 
 interface DadosProjetoFormProps {
   aplicacao: string;
-  tipoProjeto: TipoProjeto;
   tensao: number;
   autonomia: number;
   fator: number;
   onChangeAplicacao: (aplicacao: string) => void;
-  onChangeTipoProjeto: (tipo: TipoProjeto) => void;
   onChangeTensao: (tensao: number) => void;
   onChangeAutonomia: (autonomia: number) => void;
   onChangeFator: (fator: number) => void;
@@ -32,17 +29,16 @@ interface DadosProjetoFormProps {
 
 /**
  * Secao 1 - Projeto.
- * Campos: Aplicacao, Tipo do projeto, Tensao, Autonomia e Fator de utilizacao.
+ * Campos: Aplicacao, Tensao, Autonomia e Fator de utilizacao.
+ * O "Tipo do projeto" foi movido para o seletor de Modo em Dimensionamento.tsx.
  * A dica de fator e gerada dinamicamente com base na aplicacao selecionada.
  */
 export default function DadosProjetoForm({
   aplicacao,
-  tipoProjeto,
   tensao,
   autonomia,
   fator,
   onChangeAplicacao,
-  onChangeTipoProjeto,
   onChangeTensao,
   onChangeAutonomia,
   onChangeFator,
@@ -53,16 +49,16 @@ export default function DadosProjetoForm({
   return (
     <Section
       title="1. Projeto"
-      description="Aplicação, tipo, tensão, autonomia e fator de utilização."
+      description="Aplicacao, tensao, autonomia e fator de utilizacao."
     >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {/* Aplicacao — placeholder obriga escolha consciente */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Aplicacao */}
         <div className="flex flex-col gap-1">
           <label
             htmlFor="select-aplicacao"
             className="text-sm font-medium text-fullenergy-gray"
           >
-            Aplicação
+            Aplicacao
           </label>
           <select
             id="select-aplicacao"
@@ -71,7 +67,7 @@ export default function DadosProjetoForm({
             className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-fullenergy-black focus:border-fullenergy-accent focus:outline-none focus:ring-1 focus:ring-fullenergy-accent"
           >
             <option value="" disabled>
-              Selecione a aplicação
+              Selecione a aplicacao
             </option>
             {APLICACOES.map(({ value, label }) => (
               <option key={value} value={value}>
@@ -81,32 +77,13 @@ export default function DadosProjetoForm({
           </select>
         </div>
 
-        {/* Tipo do projeto */}
-        <div className="flex flex-col gap-1">
-          <label
-            htmlFor="select-tipo-do-projeto"
-            className="text-sm font-medium text-fullenergy-gray"
-          >
-            Tipo do projeto
-          </label>
-          <select
-            id="select-tipo-do-projeto"
-            value={tipoProjeto}
-            onChange={(e) => onChangeTipoProjeto(e.target.value as TipoProjeto)}
-            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-fullenergy-black focus:border-fullenergy-accent focus:outline-none focus:ring-1 focus:ring-fullenergy-accent"
-          >
-            <option value="novo">Projeto Novo</option>
-            <option value="retrofit">Retrofit</option>
-          </select>
-        </div>
-
         {/* Tensao */}
         <div className="flex flex-col gap-1">
           <label
             htmlFor="select-tensao-do-sistema-v"
             className="text-sm font-medium text-fullenergy-gray"
           >
-            Tensão do sistema (V)
+            Tensao do sistema (V)
           </label>
           <select
             id="select-tensao-do-sistema-v"
@@ -132,7 +109,7 @@ export default function DadosProjetoForm({
         />
 
         <Input
-          label="Fator de utilização (%)"
+          label="Fator de utilizacao (%)"
           type="number"
           step="1"
           min="0"
@@ -142,14 +119,14 @@ export default function DadosProjetoForm({
         />
       </div>
 
-      {/* Dica dinamica de fator — visivel apenas quando a aplicacao tem referencia */}
+      {/* Dica dinamica de fator */}
       {fatorRef && (
         <p className="mt-3 text-xs text-fullenergy-gray">
-          Referência para{" "}
+          Referencia para{" "}
           <span className="font-semibold text-fullenergy-black">
             {aplicacaoSelecionada?.label}
           </span>
-          : fator de utilização típico entre{" "}
+          : fator de utilizacao tipico entre{" "}
           <span className="font-semibold text-fullenergy-black">{fatorRef}</span>.
         </p>
       )}

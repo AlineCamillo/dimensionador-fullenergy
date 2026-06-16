@@ -14,17 +14,13 @@ function fmt(valor: number, casas = 2): string {
 
 /**
  * Tabela comparativa entre todas as celulas do catalogo para o cenario
- * calculado (uma linha por celula).
- *
- * Colapsada por padrao para nao poluir a area de resultado.
- * O usuario expande quando precisa comparar opcoes.
+ * calculado (uma linha por celula). Colapsada por padrao.
  */
 export default function ComparativoTable({ linhas }: ComparativoTableProps) {
   const [expandido, setExpandido] = useState(false);
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-      {/* Cabecalho clicavel */}
       <button
         type="button"
         aria-expanded={expandido}
@@ -45,23 +41,22 @@ export default function ComparativoTable({ linhas }: ComparativoTableProps) {
         </span>
       </button>
 
-      {/* Tabela: visivel apenas quando expandida */}
       {expandido && (
         <div className="border-t border-gray-200">
           <div className="overflow-x-auto p-2">
-            <table className="w-full min-w-[1100px] text-left text-sm">
+            <table className="w-full min-w-[1300px] text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200 text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
                   <th className="px-2 py-2">Celula</th>
                   <th className="px-2 py-2">Configuracao</th>
-                  <th className="px-2 py-2">Ah Final</th>
+                  <th className="px-2 py-2">Capacidade (Ah)</th>
                   <th className="px-2 py-2">Energia (kWh)</th>
                   <th className="px-2 py-2">C-rate Continuo</th>
-                  <th className="px-2 py-2">C-rate Pico</th>
-                  <th className="px-2 py-2">Continua Datasheet (A)</th>
-                  <th className="px-2 py-2">Continua FullEnergy (A)</th>
-                  <th className="px-2 py-2">Pico Datasheet (A)</th>
-                  <th className="px-2 py-2">Pico FullEnergy (A)</th>
+                  <th className="px-2 py-2">C-rate de Pico</th>
+                  <th className="px-2 py-2">Corrente Continua Fabricante (A)</th>
+                  <th className="px-2 py-2">Corrente Continua FullEnergy (A)</th>
+                  <th className="px-2 py-2">Corrente de Pico Fabricante (A)</th>
+                  <th className="px-2 py-2">Corrente de Pico FullEnergy (A)</th>
                   <th className="px-2 py-2">C-rate Utilizado</th>
                   <th className="px-2 py-2">Peso (kg)</th>
                   <th className="px-2 py-2">Autonomia (h)</th>

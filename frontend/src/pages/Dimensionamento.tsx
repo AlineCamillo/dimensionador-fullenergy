@@ -19,8 +19,28 @@ import type {
   ItemConsumoFormulario,
   ModoSelecaoUI,
   RetrofitInput,
-  TipoProjeto,
 } from "../types/dimensionamento";
+
+/** Modo principal de dimensionamento — controla quais blocos de entrada aparecem. */
+type ModoDimensionamento = "projeto_novo" | "retrofit" | "avancado";
+
+const MODOS: { key: ModoDimensionamento; label: string; descricao: string }[] = [
+  {
+    key: "projeto_novo",
+    label: "Projeto Novo",
+    descricao: "Dimensionamento a partir da potência e autonomia desejadas.",
+  },
+  {
+    key: "retrofit",
+    label: "Retrofit",
+    descricao: "Substituição de bateria de chumbo-ácido por LiFePO4.",
+  },
+  {
+    key: "avancado",
+    label: "Avançado",
+    descricao: "Cálculo físico por trechos de operação (ciclo real).",
+  },
+];
 
 const ITENS_CONSUMO_PADRAO: ItemConsumoFormulario[] = [
   {
@@ -59,24 +79,25 @@ const CONTROLADOR_PADRAO: ControladorFormValue = {
 /**
  * Tela de Dimensionamento — pagina principal do Dimensionador FullEnergy.
  *
- * ENTRADA (3 blocos):
- *   1. Projeto   — Aplicacao, tipo, tensao, autonomia, fator
- *   2. Consumo   — Itens de carga (motores, auxiliares etc.)
- *   3. Opcoes Avancadas (colapsavel) — Controlador e Retrofit
+ * MODOS:
+ *   Projeto Novo — formulário atual (potência + autonomia)
+ *   Retrofit     — formulário atual + bloco de parâmetros de substituição
+ *   Avançado     — cálculo físico por trechos (em desenvolvimento)
  *
  * RESULTADO (apos calcular):
  *   1. Alertas do controlador (se houver)
- *   2. BateriaRecomendada — Hero Card + Pack + Dados Tecnicos + Margens
- *   3. ResumoCards — Resumo do Sistema (o que a aplicacao exige)
+ *   2. BateriaRecomendada
+ *   3. ResumoCards
  *   4. Retrofit (se aplicavel)
- *   5. ComparativoTable (colapsada por padrao)
- *
- * O calculo e inteiramente realizado pelo backend (FastAPI).
+ *   5. ComparativoTable
  */
 export default function Dimensionamento() {
-  // Estado do formulario
+  // --- Modo principal ---
+  const [modoDimensionamento, setModoDimensionamento] =
+    useState<ModoDimensionamento>("projeto_novo");
+
+  // --- Estado do formulario ---
   const [aplicacao, setAplicacao] = useState("");
-  const [tipoProjeto, setTipoProjeto] = useState<TipoProjeto>("novo");
   const [tensao, setTensao] = useState(48);
   const [autonomia, setAutonomia] = useState(4);
   const [fator, setFator] = useState(40);
@@ -84,14 +105,13 @@ export default function Dimensionamento() {
     ITENS_CONSUMO_PADRAO,
   );
   const [retrofit, setRetrofit] = useState<RetrofitInput>(RETROFIT_PADRAO);
-  const [controlador, setControlador] = useState<ControladorFormValue>(
-    CONTROLADOR_PADRAO,
-  );
+  const [controlador, setControlador] =
+    useState<ControladorFormValue>(CONTROLADOR_PADRAO);
   const [modoSelecao, setModoSelecao] = useState<ModoSelecaoUI>("automatica");
   const [celulaManual, setCelulaManual] = useState("");
 
-  // Estado da UI
-  const [opcoesAvancadasAbertas, setOpcoesAvancadasAbertas] = useState(false);
+  // --- Estado da UI ---
+  const [validacoesAbertas, setValidacoesAbertas] = useState(false);
 
   const { resultado, carregando, erro, calcular } = useDimensionamento();
 
@@ -102,12 +122,12 @@ export default function Dimensionamento() {
     }
   }, [modoSelecao, celulaManual, resultado]);
 
-  // Abre automaticamente "Opcoes Avancadas" quando o tipo de projeto e Retrofit
+  // Abre automaticamente "Validações e Restrições" no modo Retrofit
   useEffect(() => {
-    if (tipoProjeto === "retrofit") {
-      setOpcoesAvancadasAbertas(true);
+    if (modoDimensionamento === "retrofit") {
+      setValidacoesAbertas(true);
     }
-  }, [tipoProjeto]);
+  }, [modoDimensionamento]);
 
   async function handleCalcular() {
     const modo =
@@ -124,7 +144,7 @@ export default function Dimensionamento() {
         return resto;
       }),
       modo_selecao: modo,
-      retrofit: tipoProjeto === "retrofit" ? retrofit : null,
+      retrofit: modoDimensionamento === "retrofit" ? retrofit : null,
       controlador: {
         v_min: 0,
         v_max: 0,
@@ -136,6 +156,9 @@ export default function Dimensionamento() {
     await calcular(payload);
   }
 
+  // Derivado: determina se o modo avançado está ativo (formulário ainda não implementado)
+  const modoAvancado = modoDimensionamento === "avancado";
+
   return (
     <div className="space-y-6">
       {/* Cabecalho da pagina */}
@@ -144,82 +167,137 @@ export default function Dimensionamento() {
           Dimensionamento de Baterias LiFePO4
         </h1>
         <p className="mt-1 text-sm text-fullenergy-gray">
-          Preencha os dados do projeto e clique em Calcular.
+          Selecione o modo, preencha os dados do projeto e clique em Calcular.
         </p>
       </div>
 
-      {/* Bloco 1: Projeto */}
-      <DadosProjetoForm
-        aplicacao={aplicacao}
-        tipoProjeto={tipoProjeto}
-        tensao={tensao}
-        autonomia={autonomia}
-        fator={fator}
-        onChangeAplicacao={setAplicacao}
-        onChangeTipoProjeto={setTipoProjeto}
-        onChangeTensao={setTensao}
-        onChangeAutonomia={setAutonomia}
-        onChangeFator={setFator}
-      />
-
-      {/* Bloco 2: Consumo */}
-      <ConsumoTable itens={itensConsumo} onChange={setItensConsumo} />
-
-      {/* Bloco 3: Opcoes Avancadas (colapsavel) */}
+      {/* ── Seletor de Modo de Dimensionamento ─────────────────────────── */}
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-        <button
-          type="button"
-          aria-expanded={opcoesAvancadasAbertas}
-          className="flex w-full items-center justify-between px-5 py-4 text-left"
-          onClick={() => setOpcoesAvancadasAbertas((prev) => !prev)}
-        >
-          <div>
-            <h2 className="font-heading text-lg font-semibold text-fullenergy-black">
-              Opcoes Avancadas
-            </h2>
-            <p className="mt-0.5 text-sm text-fullenergy-gray">
-              Limites do controlador e parametros de retrofit &mdash; opcional
-            </p>
-          </div>
-          <span className="text-lg text-fullenergy-gray" aria-hidden="true">
-            {opcoesAvancadasAbertas ? "▲" : "▼"}
-          </span>
-        </button>
+        <div className="px-5 pt-4 pb-3">
+          <h2 className="font-heading text-lg font-semibold text-fullenergy-black">
+            Modo de Dimensionamento
+          </h2>
+        </div>
+        <div className="flex flex-wrap gap-2 border-t border-gray-200 px-5 py-4">
+          {MODOS.map(({ key, label, descricao }) => {
+            const ativo = modoDimensionamento === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setModoDimensionamento(key)}
+                title={descricao}
+                className={`rounded-md px-5 py-2 text-sm font-semibold transition-colors ${
+                  ativo
+                    ? "bg-fullenergy-yellow text-fullenergy-black"
+                    : "bg-gray-100 text-fullenergy-gray hover:bg-gray-200 hover:text-fullenergy-black"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        {/* Descricao do modo ativo */}
+        <p className="border-t border-gray-100 px-5 py-3 text-sm text-fullenergy-gray">
+          {MODOS.find((m) => m.key === modoDimensionamento)?.descricao}
+        </p>
+      </div>
 
-        {opcoesAvancadasAbertas && (
-          <div className="space-y-4 border-t border-gray-200 px-5 pb-5 pt-4">
-            <ControladorForm value={controlador} onChange={setControlador} />
-            {tipoProjeto === "retrofit" && (
-              <RetrofitForm value={retrofit} onChange={setRetrofit} />
+      {/* ── Formulario: Projeto Novo e Retrofit ─────────────────────────── */}
+      {!modoAvancado && (
+        <>
+          {/* Bloco 1: Projeto */}
+          <DadosProjetoForm
+            aplicacao={aplicacao}
+            tensao={tensao}
+            autonomia={autonomia}
+            fator={fator}
+            onChangeAplicacao={setAplicacao}
+            onChangeTensao={setTensao}
+            onChangeAutonomia={setAutonomia}
+            onChangeFator={setFator}
+          />
+
+          {/* Bloco 2: Consumo */}
+          <ConsumoTable itens={itensConsumo} onChange={setItensConsumo} />
+
+          {/* Bloco 3 (Retrofit): Parâmetros de substituição — só no modo Retrofit */}
+          {modoDimensionamento === "retrofit" && (
+            <RetrofitForm value={retrofit} onChange={setRetrofit} />
+          )}
+
+          {/* Bloco 4: Validações e Restrições (colapsavel) */}
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <button
+              type="button"
+              aria-expanded={validacoesAbertas}
+              className="flex w-full items-center justify-between px-5 py-4 text-left"
+              onClick={() => setValidacoesAbertas((prev) => !prev)}
+            >
+              <div>
+                <h2 className="font-heading text-lg font-semibold text-fullenergy-black">
+                  Validações e Restrições
+                </h2>
+                <p className="mt-0.5 text-sm text-fullenergy-gray">
+                  Compatibilidade com o controlador existente &mdash; opcional
+                </p>
+              </div>
+              <span className="text-lg text-fullenergy-gray" aria-hidden="true">
+                {validacoesAbertas ? "▲" : "▼"}
+              </span>
+            </button>
+
+            {validacoesAbertas && (
+              <div className="border-t border-gray-200 px-5 pb-5 pt-4">
+                <ControladorForm value={controlador} onChange={setControlador} />
+              </div>
             )}
           </div>
-        )}
-      </div>
 
-      {/* Selecao da celula */}
-      <SelecaoCelulaForm
-        modo={modoSelecao}
-        onChangeModo={setModoSelecao}
-        celulaManual={celulaManual}
-        onChangeCelulaManual={setCelulaManual}
-        opcoes={resultado?.opcoes ?? []}
-      />
+          {/* Selecao da celula */}
+          <SelecaoCelulaForm
+            modo={modoSelecao}
+            onChangeModo={setModoSelecao}
+            celulaManual={celulaManual}
+            onChangeCelulaManual={setCelulaManual}
+            opcoes={resultado?.opcoes ?? []}
+          />
 
-      {/* Botao Calcular — acao principal da tela */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Button
-          type="button"
-          onClick={handleCalcular}
-          disabled={carregando}
-          className="w-full py-4 text-base font-bold tracking-wide sm:w-auto sm:px-14"
-        >
-          {carregando ? "Calculando..." : "Calcular Dimensionamento"}
-        </Button>
-        {erro && <p className="text-sm text-red-600">{erro}</p>}
-      </div>
+          {/* Botao Calcular */}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              onClick={handleCalcular}
+              disabled={carregando}
+              className="w-full py-4 text-base font-bold tracking-wide sm:w-auto sm:px-14"
+            >
+              {carregando ? "Calculando..." : "Calcular Dimensionamento"}
+            </Button>
+            {erro && <p className="text-sm text-red-600">{erro}</p>}
+          </div>
+        </>
+      )}
+
+      {/* ── Placeholder: Modo Avançado (em desenvolvimento) ────────────── */}
+      {modoAvancado && (
+        <div className="rounded-xl border border-fullenergy-yellow/40 bg-fullenergy-yellow/5 px-6 py-8 text-center shadow-sm">
+          <p className="font-heading text-lg font-bold text-fullenergy-black">
+            Dimensionamento Avançado
+          </p>
+          <p className="mt-2 text-sm text-fullenergy-gray">
+            O cálculo físico por trechos de operação está em desenvolvimento e
+            será disponibilizado em breve.
+          </p>
+          <p className="mt-1 text-xs text-fullenergy-gray">
+            Enquanto isso, utilize os modos <strong>Projeto Novo</strong> ou{" "}
+            <strong>Retrofit</strong> para dimensionar sua bateria.
+          </p>
+        </div>
+      )}
 
       {/* ── Area de resultados ──────────────────────────────────────────── */}
-      {resultado && (
+      {resultado && !modoAvancado && (
         <div className="space-y-6">
           {/* 1. Alertas do controlador (se houver) */}
           <AlertasControlador alertas={resultado.alertas_controlador} />
