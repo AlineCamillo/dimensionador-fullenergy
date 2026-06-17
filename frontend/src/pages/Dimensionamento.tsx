@@ -443,13 +443,19 @@ export default function Dimensionamento() {
                       {resultadoAvancado.trechos.map((t, i) => {
                         const kwh_trecho =
                           (t.consumo_ah * equipamentoForm.tensao) / 1000;
+                        const isDescida = t.f_total_n === 0 && t.f_rampa_n < 0;
                         return (
                           <tr
                             key={i}
                             className="border-b border-gray-100 last:border-0 hover:bg-gray-50"
                           >
                             <td className="py-2 pr-4 font-medium text-fullenergy-black">
-                              {t.descricao}
+                              <span>{t.descricao}</span>
+                              {isDescida && (
+                                <span className="ml-2 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-xs font-normal text-amber-700">
+                                  ↓ descida
+                                </span>
+                              )}
                             </td>
                             <td className="py-2 pr-4 text-right tabular-nums">
                               {fmt(t.i_bateria_a)}
@@ -486,9 +492,16 @@ export default function Dimensionamento() {
                     </tfoot>
                   </table>
                 </div>
-                <p className="mt-3 text-xs text-fullenergy-gray">
-                  Selecao de celulas para o modo avancado sera integrada na proxima etapa.
-                </p>
+                <div className="mt-3 space-y-1">
+                  <p className="text-xs text-fullenergy-gray">
+                    Selecao de celulas para o modo avancado sera integrada na proxima etapa.
+                  </p>
+                  <p className="text-xs text-amber-700">
+                    Trechos marcados com ↓ descida resultam em força líquida negativa.
+                    Consumo considerado como 0 nesta versão — energia regenerativa ainda não
+                    é calculada pelo modelo.
+                  </p>
+                </div>
               </div>
             </div>
           )}
