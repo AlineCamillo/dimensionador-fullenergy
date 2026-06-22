@@ -38,6 +38,7 @@ import type {
 } from "../types/avancado";
 import { useProjetos } from "../hooks/useProjetos";
 import SalvarProjetoModal from "../components/dimensionamento/SalvarProjetoModal";
+import { supabaseConfigurado } from "../lib/supabase/client";
 import type { NovoProjetoInput } from "../types/projeto";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -778,18 +779,20 @@ export default function Dimensionamento() {
               />
               <ResumoCards resumo={resultadoSelecaoAvancado.resumo} />
               <ComparativoTable linhas={resultadoSelecaoAvancado.comparativo} />
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handleAbrirModalSalvar}
-                >
-                  Salvar Projeto
-                </Button>
-                {mensagemProjetoSalvo && (
-                  <p className="text-sm text-green-700">{mensagemProjetoSalvo}</p>
-                )}
-              </div>
+              {supabaseConfigurado && (
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleAbrirModalSalvar}
+                  >
+                    Salvar Projeto
+                  </Button>
+                  {mensagemProjetoSalvo && (
+                    <p className="text-sm text-green-700">{mensagemProjetoSalvo}</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </>
@@ -833,28 +836,32 @@ export default function Dimensionamento() {
             </div>
           )}
           <ComparativoTable linhas={resultado.comparativo} />
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleAbrirModalSalvar}
-            >
-              Salvar Projeto
-            </Button>
-            {mensagemProjetoSalvo && (
-              <p className="text-sm text-green-700">{mensagemProjetoSalvo}</p>
-            )}
-          </div>
+          {supabaseConfigurado && (
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleAbrirModalSalvar}
+              >
+                Salvar Projeto
+              </Button>
+              {mensagemProjetoSalvo && (
+                <p className="text-sm text-green-700">{mensagemProjetoSalvo}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      <SalvarProjetoModal
-        aberto={modalSalvarAberto}
-        salvando={salvandoProjeto}
-        erro={erroSalvarProjeto}
-        onCancelar={() => setModalSalvarAberto(false)}
-        onConfirmar={handleConfirmarSalvarProjeto}
-      />
+      {supabaseConfigurado && (
+        <SalvarProjetoModal
+          aberto={modalSalvarAberto}
+          salvando={salvandoProjeto}
+          erro={erroSalvarProjeto}
+          onCancelar={() => setModalSalvarAberto(false)}
+          onConfirmar={handleConfirmarSalvarProjeto}
+        />
+      )}
     </div>
   );
 }

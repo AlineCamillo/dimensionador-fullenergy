@@ -68,11 +68,11 @@ function LinhaProjeto({ projeto, onExcluir, excluindo }: LinhaProjetoProps) {
  * excluir. Abrir um projeto salvo de volta no formulário fica para a Fase 2.
  */
 export default function Projetos() {
-  const { projetos, carregando, erro, listar, excluir } = useProjetos();
+  const { projetos, carregando, erro, configurado, listar, excluir } = useProjetos();
 
   useEffect(() => {
-    listar();
-  }, [listar]);
+    if (configurado) listar();
+  }, [configurado, listar]);
 
   return (
     <div className="space-y-6">
@@ -89,24 +89,30 @@ export default function Projetos() {
         title="Projetos"
         description="Salvos a partir da tela de Dimensionamento, nos modos Padrão, Retrofit e Avançado."
       >
-        {carregando && (
+        {!configurado && (
+          <p className="py-6 text-center text-sm text-fullenergy-gray">
+            Supabase não configurado.
+          </p>
+        )}
+
+        {configurado && carregando && (
           <p className="py-6 text-center text-sm text-fullenergy-gray">
             Carregando projetos...
           </p>
         )}
 
-        {!carregando && erro && (
+        {configurado && !carregando && erro && (
           <p className="py-6 text-center text-sm text-red-600">{erro}</p>
         )}
 
-        {!carregando && !erro && projetos.length === 0 && (
+        {configurado && !carregando && !erro && projetos.length === 0 && (
           <p className="py-6 text-center text-sm text-fullenergy-gray">
             Nenhum projeto salvo ainda. Calcule um dimensionamento e use o
             botão &quot;Salvar Projeto&quot; para guardá-lo aqui.
           </p>
         )}
 
-        {!carregando && !erro && projetos.length > 0 && (
+        {configurado && !carregando && !erro && projetos.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[700px] text-left text-sm">
               <thead>

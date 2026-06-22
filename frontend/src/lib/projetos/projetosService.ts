@@ -1,4 +1,4 @@
-import { supabase, garantirSessaoAnonima } from "../supabase/client";
+import { supabase, supabaseConfigurado, garantirSessaoAnonima } from "../supabase/client";
 import type { NovoProjetoInput, ProjetoSalvo } from "../../types/projeto";
 
 const TABELA = "projetos";
@@ -11,9 +11,17 @@ const TABELA = "projetos";
  *
  * Nenhuma regra de cálculo é replicada aqui: os dados gravados são apenas
  * snapshots do que já foi calculado pelos motores existentes.
+ *
+ * Supabase é opcional: toda função aqui falha de forma previsível (erro
+ * "Supabase não configurado.") se as variáveis de ambiente não estiverem
+ * presentes, sem tentar nenhuma chamada de rede.
  */
 
 export async function salvarProjeto(input: NovoProjetoInput): Promise<ProjetoSalvo> {
+  if (!supabaseConfigurado || !supabase) {
+    throw new Error("Supabase não configurado.");
+  }
+
   await garantirSessaoAnonima();
 
   const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -43,6 +51,10 @@ export async function salvarProjeto(input: NovoProjetoInput): Promise<ProjetoSal
 }
 
 export async function listarProjetos(): Promise<ProjetoSalvo[]> {
+  if (!supabaseConfigurado || !supabase) {
+    throw new Error("Supabase não configurado.");
+  }
+
   await garantirSessaoAnonima();
 
   const { data, error } = await supabase
@@ -58,6 +70,10 @@ export async function listarProjetos(): Promise<ProjetoSalvo[]> {
 }
 
 export async function excluirProjeto(id: string): Promise<void> {
+  if (!supabaseConfigurado || !supabase) {
+    throw new Error("Supabase não configurado.");
+  }
+
   await garantirSessaoAnonima();
 
   const { error } = await supabase.from(TABELA).delete().eq("id", id);
