@@ -5,6 +5,15 @@
 -- Executar no SQL Editor do Supabase (projeto > SQL Editor > New query).
 -- Ordem de criação respeita as dependências de FK.
 -- =============================================================================
+--
+-- SUPERSEDIDA (não executar): esta migração foi desenhada para o backend
+-- FastAPI com SERVICE_ROLE_KEY (sem RLS), anterior ao modo Avançado e à
+-- migração do motor de cálculo para TypeScript no frontend. Não há
+-- evidência de que tenha sido executada em um projeto Supabase real
+-- (nenhum .env com credenciais reais foi encontrado no repositório).
+-- A estrutura vigente está em 002_projetos_jsonb.sql (frontend + anon key
+-- + RLS por sessão anônima). Mantida aqui apenas como histórico.
+-- =============================================================================
 
 
 -- -----------------------------------------------------------------------------

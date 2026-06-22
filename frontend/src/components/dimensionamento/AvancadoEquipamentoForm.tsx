@@ -116,7 +116,7 @@ export default function AvancadoEquipamentoForm({
           <Input
             label="Tensão da Bateria (V)"
             type="number"
-            step="1"
+            step="12"
             min="1"
             value={value.tensao}
             onChange={(e) => set("tensao", Number(e.target.value))}
@@ -133,7 +133,7 @@ export default function AvancadoEquipamentoForm({
               <Input
                 label="Massa Base do Equipamento (kg)"
                 type="number"
-                step="1"
+                step="5"
                 min="1"
                 value={value.massa_base}
                 onChange={(e) => set("massa_base", Number(e.target.value))}
@@ -146,7 +146,7 @@ export default function AvancadoEquipamentoForm({
               <Input
                 label="Carga Transportada (kg)"
                 type="number"
-                step="1"
+                step="5"
                 min="0"
                 value={value.carga_kg}
                 onChange={(e) => set("carga_kg", Number(e.target.value))}

@@ -285,6 +285,15 @@ export default function AvancadoTrechosForm({
                         onChange={(e) =>
                           handleInclinacaoChange(trecho.id, e.target.value)
                         }
+                        onKeyDown={(e) => {
+                          if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+                          e.preventDefault();
+                          const step = getUnidade(trecho.id) === "°" ? 0.5 : 1;
+                          const curr = parseFloat(getDisplayVal(trecho)) || 0;
+                          const next = e.key === "ArrowUp" ? curr + step : curr - step;
+                          const rounded = Math.round(next * 100) / 100;
+                          handleInclinacaoChange(trecho.id, String(rounded));
+                        }}
                         className="w-full min-w-0 rounded-md border border-gray-300 px-3 py-2 text-sm text-fullenergy-black focus:border-fullenergy-accent focus:outline-none focus:ring-1 focus:ring-fullenergy-accent"
                       />
                       {/* Seletor de unidade */}
@@ -345,7 +354,7 @@ export default function AvancadoTrechosForm({
                     <Input
                       label="Tempo total nesta condição operacional (s)"
                       type="number"
-                      step="1"
+                      step="5"
                       min="1"
                       value={trecho.tempo_total_s}
                       onChange={(e) =>

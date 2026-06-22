@@ -20,9 +20,14 @@ import AvancadoTrechosForm, {
 } from "../components/dimensionamento/AvancadoTrechosForm";
 import { useDimensionamento } from "../hooks/useDimensionamento";
 import { calcularCicloAvancado } from "../lib/calculo/avancado";
+import { montarResumoAvancado } from "../lib/calculo/dimensionamento";
+import type { AutonomiaAvancadaInput } from "../lib/calculo/dimensionamento";
+import { escolherCelula } from "../lib/calculo/selecao_celula";
+import { montarComparativo } from "../lib/calculo/comparativo";
 import { formularioParaEquipamento } from "../types/avancado";
 import type {
   DimensionamentoRequest,
+  DimensionamentoResponse,
   ItemConsumoFormulario,
   ModoSelecaoUI,
   RetrofitInput,
@@ -31,6 +36,9 @@ import type {
   EquipamentoFormulario,
   ResultadoCicloAvancado,
 } from "../types/avancado";
+import { useProjetos } from "../hooks/useProjetos";
+import SalvarProjetoModal from "../components/dimensionamento/SalvarProjetoModal";
+import type { NovoProjetoInput } from "../types/projeto";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constantes
@@ -59,26 +67,28 @@ const MODOS: { key: ModoDimensionamento; label: string; descricao: string }[] = 
   },
 ];
 
-const ITENS_CONSUMO_PADRAO: ItemConsumoFormulario[] = [
-  {
-    id: crypto.randomUUID(),
-    descricao: "Motor de tracao",
-    tipo: "AC",
-    potencia: 3000,
-    corrente: 0,
-    uso_pct: 100,
-    eficiencia_pct: 90,
-  },
-  {
-    id: crypto.randomUUID(),
-    descricao: "Componente auxiliar",
-    tipo: "DC",
-    potencia: 0,
-    corrente: 0,
-    uso_pct: 100,
-    eficiencia_pct: 100,
-  },
-];
+function criarItensConsumoPadrao(): ItemConsumoFormulario[] {
+  return [
+    {
+      id: crypto.randomUUID(),
+      descricao: "Motor de tracao",
+      tipo: "AC",
+      potencia: 3000,
+      corrente: 0,
+      uso_pct: 100,
+      eficiencia_pct: 90,
+    },
+    {
+      id: crypto.randomUUID(),
+      descricao: "Componente auxiliar",
+      tipo: "DC",
+      potencia: 0,
+      corrente: 0,
+      uso_pct: 100,
+      eficiencia_pct: 100,
+    },
+  ];
+}
 
 const RETROFIT_PADRAO: RetrofitInput = {
   ah_chumbo: 220,
@@ -120,7 +130,7 @@ export default function Dimensionamento() {
   const [autonomia, setAutonomia] = useState(4);
   const [fator, setFator] = useState(40);
   const [itensConsumo, setItensConsumo] = useState<ItemConsumoFormulario[]>(
-    ITENS_CONSUMO_PADRAO,
+    () => criarItensConsumoPadrao(),
   );
   const [retrofit, setRetrofit] = useState<RetrofitInput>(RETROFIT_PADRAO);
   const [controlador, setControlador] =
@@ -138,9 +148,23 @@ export default function Dimensionamento() {
   const [resultadoAvancado, setResultadoAvancado] =
     useState<ResultadoCicloAvancado | null>(null);
   const [erroAvancado, setErroAvancado] = useState<string | null>(null);
+  const [autonomiaAvancada, setAutonomiaAvancada] = useState<AutonomiaAvancadaInput>(
+    { modo: "ciclos", valor: 8 },
+  );
+  const [modoSelecaoAvancado, setModoSelecaoAvancado] = useState<ModoSelecaoUI>("automatica");
+  const [celulaManualAvancado, setCelulaManualAvancado] = useState("");
+  const [resultadoSelecaoAvancado, setResultadoSelecaoAvancado] =
+    useState<DimensionamentoResponse | null>(null);
+
+  // ── Estado: Projetos Salvos ─────────────────────────────────────────────────
+  const { salvar: salvarProjetoNoBanco } = useProjetos();
+  const [modalSalvarAberto, setModalSalvarAberto] = useState(false);
+  const [salvandoProjeto, setSalvandoProjeto] = useState(false);
+  const [erroSalvarProjeto, setErroSalvarProjeto] = useState<string | null>(null);
+  const [mensagemProjetoSalvo, setMensagemProjetoSalvo] = useState<string | null>(null);
 
   // ── Hook cálculo padrão ────────────────────────────────────────────────────
-  const { resultado, carregando, erro, calcular } = useDimensionamento();
+  const { resultado, carregando, erro, calcular, limpar } = useDimensionamento();
 
   // ── Efeitos ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -152,6 +176,16 @@ export default function Dimensionamento() {
   useEffect(() => {
     if (modoDimensionamento === "retrofit") setValidacoesAbertas(true);
   }, [modoDimensionamento]);
+
+  useEffect(() => {
+    if (
+      modoSelecaoAvancado === "manual" &&
+      !celulaManualAvancado &&
+      resultadoSelecaoAvancado?.opcoes.length
+    ) {
+      setCelulaManualAvancado(identificadorCelula(resultadoSelecaoAvancado.opcoes[0]));
+    }
+  }, [modoSelecaoAvancado, celulaManualAvancado, resultadoSelecaoAvancado]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   async function handleCalcularPadrao() {
@@ -183,6 +217,7 @@ export default function Dimensionamento() {
 
   function handleCalcularAvancado() {
     setErroAvancado(null);
+    setResultadoSelecaoAvancado(null);
     try {
       const eq = formularioParaEquipamento(equipamentoForm);
       const trechosSemId = trechosAvancado.map(({ id, ...t }) => {
@@ -195,6 +230,146 @@ export default function Dimensionamento() {
       setErroAvancado(
         e instanceof Error ? e.message : "Erro ao calcular o ciclo avancado.",
       );
+    }
+  }
+
+  function handleDimensionarAvancado() {
+    if (!resultadoAvancado) return;
+    const { resumo, opcoes } = montarResumoAvancado(
+      resultadoAvancado,
+      equipamentoForm.tensao,
+      autonomiaAvancada,
+    );
+    const modo =
+      modoSelecaoAvancado === "automatica"
+        ? "Automática"
+        : celulaManualAvancado || "Automática";
+    const celula = escolherCelula(modo, opcoes, resumo);
+    const comparativo = montarComparativo(opcoes, resumo);
+    setResultadoSelecaoAvancado({
+      resumo,
+      retrofit: null,
+      opcoes: opcoes as DimensionamentoResponse["opcoes"],
+      comparativo,
+      celula_selecionada: celula as DimensionamentoResponse["celula_selecionada"],
+      alertas_controlador: [],
+    });
+  }
+
+  function handleAbrirModalSalvar() {
+    setErroSalvarProjeto(null);
+    setMensagemProjetoSalvo(null);
+    setModalSalvarAberto(true);
+  }
+
+  async function handleConfirmarSalvarProjeto({
+    nome,
+    cliente,
+  }: {
+    nome: string;
+    cliente: string;
+  }) {
+    setSalvandoProjeto(true);
+    setErroSalvarProjeto(null);
+    try {
+      let projetoInput: NovoProjetoInput;
+
+      if (modoAvancado) {
+        if (!resultadoSelecaoAvancado) {
+          throw new Error(
+            "Calcule o ciclo e dimensione a bateria antes de salvar.",
+          );
+        }
+        projetoInput = {
+          nome,
+          cliente: cliente || null,
+          aplicacao: equipamentoForm.aplicacao || null,
+          tipo: "avancado",
+          dados_entrada: {
+            tipo: "avancado",
+            equipamento: equipamentoForm,
+            trechos: trechosAvancado.map(({ id, ...t }) => {
+              void id;
+              return t;
+            }),
+            autonomia: autonomiaAvancada,
+          },
+          resultado: resultadoSelecaoAvancado,
+        };
+      } else {
+        if (!resultado) {
+          throw new Error("Calcule o dimensionamento antes de salvar.");
+        }
+        const tipoProjeto = modoDimensionamento === "retrofit" ? "retrofit" : "padrao";
+        const payload: DimensionamentoRequest = {
+          tensao,
+          autonomia,
+          fator,
+          itens_consumo: itensConsumo.map(({ id, ...resto }) => {
+            void id;
+            return resto;
+          }),
+          modo_selecao:
+            modoSelecao === "automatica" ? "Automática" : celulaManual || "Automática",
+          retrofit: modoDimensionamento === "retrofit" ? retrofit : null,
+          controlador: {
+            v_min: 0,
+            v_max: 0,
+            i_cont: controlador.i_cont,
+            i_pico: controlador.i_pico,
+          },
+        };
+        projetoInput = {
+          nome,
+          cliente: cliente || null,
+          aplicacao: aplicacao || null,
+          tipo: tipoProjeto,
+          dados_entrada: { tipo: tipoProjeto, payload },
+          resultado,
+        };
+      }
+
+      await salvarProjetoNoBanco(projetoInput);
+      setModalSalvarAberto(false);
+      setMensagemProjetoSalvo("Projeto salvo com sucesso.");
+    } catch (e) {
+      setErroSalvarProjeto(
+        e instanceof Error ? e.message : "Erro inesperado ao salvar o projeto.",
+      );
+    } finally {
+      setSalvandoProjeto(false);
+    }
+  }
+
+  function handleLimparFormulario() {
+    const confirmado = window.confirm(
+      "Deseja limpar os dados deste dimensionamento? Esta ação não pode ser desfeita.",
+    );
+    if (!confirmado) return;
+
+    setErroSalvarProjeto(null);
+    setMensagemProjetoSalvo(null);
+
+    if (modoAvancado) {
+      setEquipamentoForm(EQUIPAMENTO_FORM_PADRAO);
+      setTrechosAvancado([novoTrechoFormulario(1)]);
+      setResultadoAvancado(null);
+      setErroAvancado(null);
+      setAutonomiaAvancada({ modo: "ciclos", valor: 8 });
+      setModoSelecaoAvancado("automatica");
+      setCelulaManualAvancado("");
+      setResultadoSelecaoAvancado(null);
+    } else {
+      setAplicacao("");
+      setTensao(48);
+      setAutonomia(4);
+      setFator(40);
+      setItensConsumo(criarItensConsumoPadrao());
+      setRetrofit(RETROFIT_PADRAO);
+      setControlador(CONTROLADOR_PADRAO);
+      setModoSelecao("automatica");
+      setCelulaManual("");
+      limpar();
     }
   }
 
@@ -223,10 +398,13 @@ export default function Dimensionamento() {
 
       {/* ── Seletor de Modo ─────────────────────────────────────────────── */}
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="px-5 pt-4 pb-3">
+        <div className="flex items-center justify-between px-5 pt-4 pb-3">
           <h2 className="font-heading text-lg font-semibold text-fullenergy-black">
             Modo de Dimensionamento
           </h2>
+          <Button type="button" variant="ghost" onClick={handleLimparFormulario}>
+            Limpar Formulário
+          </Button>
         </div>
         <div className="flex flex-wrap gap-2 border-t border-gray-200 px-5 py-4">
           {MODOS.map(({ key, label, descricao }) => {
@@ -493,15 +671,124 @@ export default function Dimensionamento() {
                   </table>
                 </div>
                 <div className="mt-3 space-y-1">
-                  <p className="text-xs text-fullenergy-gray">
-                    Selecao de celulas para o modo avancado sera integrada na proxima etapa.
-                  </p>
                   <p className="text-xs text-amber-700">
                     Trechos marcados com ↓ descida resultam em força líquida negativa.
                     Consumo considerado como 0 nesta versão — energia regenerativa ainda não
                     é calculada pelo modelo.
                   </p>
                 </div>
+              </div>
+
+              {/* ── Autonomia Desejada ──────────────────────────────────────── */}
+              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <h2 className="mb-1 font-heading text-lg font-semibold text-fullenergy-black">
+                  Autonomia Desejada
+                </h2>
+                <p className="mb-4 text-sm text-fullenergy-gray">
+                  Informe quantos ciclos ou horas de operação a bateria deve suportar por carga.
+                </p>
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-fullenergy-gray">
+                      Modo de autonomia
+                    </label>
+                    <select
+                      value={autonomiaAvancada.modo}
+                      onChange={(e) =>
+                        setAutonomiaAvancada((prev) => ({
+                          ...prev,
+                          modo: e.target.value as "ciclos" | "horas",
+                        }))
+                      }
+                      className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-fullenergy-black focus:border-fullenergy-accent focus:outline-none focus:ring-1 focus:ring-fullenergy-accent"
+                    >
+                      <option value="ciclos">Ciclos por carga</option>
+                      <option value="horas">Horas de operação</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-fullenergy-gray">
+                      {autonomiaAvancada.modo === "ciclos"
+                        ? "Número de ciclos"
+                        : "Horas de operação"}
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      step={autonomiaAvancada.modo === "ciclos" ? "1" : "0.5"}
+                      value={autonomiaAvancada.valor}
+                      onChange={(e) =>
+                        setAutonomiaAvancada((prev) => ({
+                          ...prev,
+                          valor: Number(e.target.value),
+                        }))
+                      }
+                      className="w-32 rounded-md border border-gray-300 px-3 py-2 text-sm text-fullenergy-black focus:border-fullenergy-accent focus:outline-none focus:ring-1 focus:ring-fullenergy-accent"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-xs font-semibold text-fullenergy-gray">
+                      Capacidade necessária
+                    </p>
+                    <p className="font-heading text-base font-bold text-fullenergy-black">
+                      {fmt(
+                        autonomiaAvancada.modo === "ciclos"
+                          ? resultadoAvancado.ah_total * autonomiaAvancada.valor
+                          : resultadoAvancado.i_media_a * autonomiaAvancada.valor,
+                      )}{" "}
+                      Ah
+                    </p>
+                    <p className="text-xs text-fullenergy-gray">
+                      {autonomiaAvancada.modo === "ciclos"
+                        ? `${fmt(resultadoAvancado.ah_total)} Ah/ciclo × ${autonomiaAvancada.valor} ciclos`
+                        : `${fmt(resultadoAvancado.i_media_a)} A × ${autonomiaAvancada.valor} h`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Seleção de Célula ────────────────────────────────────────── */}
+              <SelecaoCelulaForm
+                modo={modoSelecaoAvancado}
+                onChangeModo={setModoSelecaoAvancado}
+                celulaManual={celulaManualAvancado}
+                onChangeCelulaManual={setCelulaManualAvancado}
+                opcoes={resultadoSelecaoAvancado?.opcoes ?? []}
+              />
+
+              {/* ── Botão Dimensionar Bateria ─────────────────────────────────── */}
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  onClick={handleDimensionarAvancado}
+                  className="w-full py-4 text-base font-bold tracking-wide sm:w-auto sm:px-14"
+                >
+                  Dimensionar Bateria
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Resultado: Bateria Recomendada (Avançado) ─────────────────── */}
+          {resultadoSelecaoAvancado && (
+            <div className="space-y-6">
+              <BateriaRecomendada
+                celula={resultadoSelecaoAvancado.celula_selecionada}
+                resumo={resultadoSelecaoAvancado.resumo}
+              />
+              <ResumoCards resumo={resultadoSelecaoAvancado.resumo} />
+              <ComparativoTable linhas={resultadoSelecaoAvancado.comparativo} />
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleAbrirModalSalvar}
+                >
+                  Salvar Projeto
+                </Button>
+                {mensagemProjetoSalvo && (
+                  <p className="text-sm text-green-700">{mensagemProjetoSalvo}</p>
+                )}
               </div>
             </div>
           )}
@@ -546,8 +833,28 @@ export default function Dimensionamento() {
             </div>
           )}
           <ComparativoTable linhas={resultado.comparativo} />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleAbrirModalSalvar}
+            >
+              Salvar Projeto
+            </Button>
+            {mensagemProjetoSalvo && (
+              <p className="text-sm text-green-700">{mensagemProjetoSalvo}</p>
+            )}
+          </div>
         </div>
       )}
+
+      <SalvarProjetoModal
+        aberto={modalSalvarAberto}
+        salvando={salvandoProjeto}
+        erro={erroSalvarProjeto}
+        onCancelar={() => setModalSalvarAberto(false)}
+        onConfirmar={handleConfirmarSalvarProjeto}
+      />
     </div>
   );
 }
