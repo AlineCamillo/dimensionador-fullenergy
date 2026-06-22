@@ -18,8 +18,14 @@ import AvancadoTrechosForm, {
   type TrechoFormulario,
   novoTrechoFormulario,
 } from "../components/dimensionamento/AvancadoTrechosForm";
+import ElevacaoForm from "../components/dimensionamento/ElevacaoForm";
 import { useDimensionamento } from "../hooks/useDimensionamento";
 import { calcularCicloAvancado } from "../lib/calculo/avancado";
+import {
+  calcularElevacao,
+  type ElevacaoInput,
+  type ElevacaoResultado,
+} from "../lib/calculo/elevacao";
 import { montarResumoAvancado } from "../lib/calculo/dimensionamento";
 import type { AutonomiaAvancadaInput } from "../lib/calculo/dimensionamento";
 import { escolherCelula } from "../lib/calculo/selecao_celula";
@@ -116,6 +122,17 @@ const EQUIPAMENTO_FORM_PADRAO: EquipamentoFormulario = {
   gravidade:  9.81,
 };
 
+/** Aplicação que ativa a seção opcional "Ciclo de Elevação". */
+const APLICACAO_PLATAFORMA_ELEVATORIA = "Plataforma Elevatória";
+
+const ELEVACAO_PADRAO: ElevacaoInput = {
+  altura_m: 0,
+  massa_kg: 0,
+  elevacoes_por_ciclo: 1,
+  tempo_subida_s: 10,
+  rendimento_pct: 60,
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Componente
 // ─────────────────────────────────────────────────────────────────────────────
@@ -156,6 +173,9 @@ export default function Dimensionamento() {
   const [celulaManualAvancado, setCelulaManualAvancado] = useState("");
   const [resultadoSelecaoAvancado, setResultadoSelecaoAvancado] =
     useState<DimensionamentoResponse | null>(null);
+  const [elevacaoForm, setElevacaoForm] = useState<ElevacaoInput>(ELEVACAO_PADRAO);
+  const [resultadoElevacao, setResultadoElevacao] =
+    useState<ElevacaoResultado | null>(null);
 
   // ── Estado: Projetos Salvos ─────────────────────────────────────────────────
   const { salvar: salvarProjetoNoBanco } = useProjetos();
@@ -227,6 +247,12 @@ export default function Dimensionamento() {
       });
       const ciclo = calcularCicloAvancado(eq, trechosSemId);
       setResultadoAvancado(ciclo);
+
+      if (equipamentoForm.aplicacao === APLICACAO_PLATAFORMA_ELEVATORIA) {
+        setResultadoElevacao(calcularElevacao(elevacaoForm, equipamentoForm.tensao));
+      } else {
+        setResultadoElevacao(null);
+      }
     } catch (e) {
       setErroAvancado(
         e instanceof Error ? e.message : "Erro ao calcular o ciclo avancado.",
@@ -236,8 +262,24 @@ export default function Dimensionamento() {
 
   function handleDimensionarAvancado() {
     if (!resultadoAvancado) return;
+
+    // Plataforma Elevatória: soma o consumo da elevação hidráulica ao
+    // consumo de deslocamento antes de dimensionar a bateria — tanto no
+    // modo de autonomia "Ciclos" (Ah/kWh totais) quanto no modo "Horas"
+    // (corrente média combinada, ver calcularIMediaCombinadaAvancado).
+    // Os motores de deslocamento e de elevação não são alterados — apenas
+    // os totais já calculados por eles são combinados aqui.
+    const cicloParaDimensionamento = resultadoElevacao
+      ? {
+          ...resultadoAvancado,
+          ah_total: resultadoAvancado.ah_total + resultadoElevacao.consumo_ah,
+          energia_kwh: resultadoAvancado.energia_kwh + resultadoElevacao.energia_kwh,
+          i_media_a: calcularIMediaCombinadaAvancado(),
+        }
+      : resultadoAvancado;
+
     const { resumo, opcoes } = montarResumoAvancado(
-      resultadoAvancado,
+      cicloParaDimensionamento,
       equipamentoForm.tensao,
       autonomiaAvancada,
     );
@@ -360,6 +402,8 @@ export default function Dimensionamento() {
       setModoSelecaoAvancado("automatica");
       setCelulaManualAvancado("");
       setResultadoSelecaoAvancado(null);
+      setElevacaoForm(ELEVACAO_PADRAO);
+      setResultadoElevacao(null);
     } else {
       setAplicacao("");
       setTensao(48);
@@ -376,6 +420,42 @@ export default function Dimensionamento() {
 
   // ── Helpers de formatação ──────────────────────────────────────────────────
   const modoAvancado = modoDimensionamento === "avancado";
+  const aplicacaoElevatoria =
+    equipamentoForm.aplicacao === APLICACAO_PLATAFORMA_ELEVATORIA;
+
+  /**
+   * Corrente média combinada (deslocamento + elevação) usada pelo modo de
+   * autonomia "Horas de operação".
+   *
+   * Sem elevação ativa, retorna exatamente resultadoAvancado.i_media_a
+   * (motor de deslocamento, inalterado).
+   *
+   * Com elevação ativa, distribui as duas energias (Ah) sobre a duração
+   * TOTAL do ciclo (tempo de deslocamento + tempo de elevação):
+   *
+   *   tempo_elevacao_total_s = tempo_subida_s × elevações_por_ciclo
+   *   tempo_total_s          = tempo_deslocamento_s + tempo_elevacao_total_s
+   *   Ah_total                = Ah_deslocamento + Ah_elevação
+   *   I_media_total            = Ah_total / (tempo_total_s / 3600)
+   *
+   * Isso é algebricamente equivalente a:
+   *   I_media_total = I_media_deslocamento_recalculada_no_tempo_total
+   *                 + I_equivalente_elevação_distribuída_no_tempo_total
+   * pois ambos os termos têm o mesmo denominador (tempo_total_s/3600).
+   * Nem o motor de deslocamento nem o motor de elevação são alterados —
+   * apenas seus resultados já calculados são combinados aqui.
+   */
+  function calcularIMediaCombinadaAvancado(): number {
+    if (!resultadoAvancado) return 0;
+    if (!resultadoElevacao) return resultadoAvancado.i_media_a;
+
+    const tempoElevacaoTotal_s =
+      elevacaoForm.tempo_subida_s * Math.max(0, elevacaoForm.elevacoes_por_ciclo);
+    const tempoTotal_s = resultadoAvancado.tempo_total_s + tempoElevacaoTotal_s;
+    const ahTotal = resultadoAvancado.ah_total + resultadoElevacao.consumo_ah;
+
+    return tempoTotal_s > 0 ? ahTotal / (tempoTotal_s / 3600) : resultadoAvancado.i_media_a;
+  }
 
   function fmt(n: number, casas = 2) {
     return n.toLocaleString("pt-BR", {
@@ -502,6 +582,9 @@ export default function Dimensionamento() {
             value={equipamentoForm}
             onChange={setEquipamentoForm}
           />
+          {aplicacaoElevatoria && (
+            <ElevacaoForm value={elevacaoForm} onChange={setElevacaoForm} />
+          )}
           <AvancadoTrechosForm
             trechos={trechosAvancado}
             onChange={setTrechosAvancado}
@@ -559,6 +642,77 @@ export default function Dimensionamento() {
                   </div>
                 </div>
               </div>
+
+              {/* Bloco 1.5: Consumo de Elevação Hidráulica (somente Plataforma Elevatória) */}
+              {aplicacaoElevatoria && resultadoElevacao && (
+                <div className="rounded-xl border border-fullenergy-yellow/40 bg-[#FFFDF5] p-5 shadow-sm">
+                  <h2 className="mb-4 font-heading text-lg font-semibold text-fullenergy-black">
+                    Consumo de Elevação Hidráulica
+                  </h2>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div className="rounded-lg border border-gray-200 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
+                        Energia por Elevação
+                      </p>
+                      <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
+                        {fmt(resultadoElevacao.energia_eletrica_por_elevacao_j / 1000)} kJ
+                      </p>
+                      <p className="mt-0.5 text-xs text-fullenergy-gray">
+                        Mecânica: {fmt(resultadoElevacao.energia_mecanica_por_elevacao_j / 1000)} kJ
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-fullenergy-yellow bg-[#FEFCE8] p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
+                        Ah de Elevação (ciclo)
+                      </p>
+                      <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
+                        {fmt(resultadoElevacao.consumo_ah)} Ah
+                      </p>
+                      <p className="mt-0.5 text-xs text-fullenergy-gray">
+                        {fmt(resultadoElevacao.energia_wh)} Wh em {elevacaoForm.elevacoes_por_ciclo}x elevação(ões)
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-200 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
+                        Potência Média na Subida
+                      </p>
+                      <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
+                        {fmt(resultadoElevacao.potencia_media_w)} W
+                      </p>
+                      <p className="mt-0.5 text-xs text-fullenergy-gray">
+                        {fmt(resultadoElevacao.corrente_media_a)} A (informativo)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="rounded-lg border border-fullenergy-accent bg-orange-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
+                        Ah Total do Ciclo (Deslocamento + Elevação)
+                      </p>
+                      <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
+                        {fmt(resultadoAvancado.ah_total + resultadoElevacao.consumo_ah)} Ah
+                      </p>
+                      <p className="mt-0.5 text-xs text-fullenergy-gray">
+                        {fmt(resultadoAvancado.ah_total)} Ah deslocamento + {fmt(resultadoElevacao.consumo_ah)} Ah elevação
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-fullenergy-accent bg-orange-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
+                        kWh Total do Ciclo (Deslocamento + Elevação)
+                      </p>
+                      <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
+                        {fmt(resultadoAvancado.energia_kwh + resultadoElevacao.energia_kwh)} kWh
+                      </p>
+                      <p className="mt-0.5 text-xs text-fullenergy-gray">
+                        {fmt(resultadoAvancado.energia_kwh)} kWh deslocamento + {fmt(resultadoElevacao.energia_kwh, 4)} kWh elevação
+                      </p>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs text-fullenergy-gray">
+                    O dimensionamento da bateria abaixo já considera o total combinado (deslocamento + elevação).
+                  </p>
+                </div>
+              )}
 
               {/* Bloco 2: Requisitos da Bateria */}
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -734,15 +888,16 @@ export default function Dimensionamento() {
                     <p className="font-heading text-base font-bold text-fullenergy-black">
                       {fmt(
                         autonomiaAvancada.modo === "ciclos"
-                          ? resultadoAvancado.ah_total * autonomiaAvancada.valor
-                          : resultadoAvancado.i_media_a * autonomiaAvancada.valor,
+                          ? (resultadoAvancado.ah_total + (resultadoElevacao?.consumo_ah ?? 0)) *
+                              autonomiaAvancada.valor
+                          : calcularIMediaCombinadaAvancado() * autonomiaAvancada.valor,
                       )}{" "}
                       Ah
                     </p>
                     <p className="text-xs text-fullenergy-gray">
                       {autonomiaAvancada.modo === "ciclos"
-                        ? `${fmt(resultadoAvancado.ah_total)} Ah/ciclo × ${autonomiaAvancada.valor} ciclos`
-                        : `${fmt(resultadoAvancado.i_media_a)} A × ${autonomiaAvancada.valor} h`}
+                        ? `${fmt(resultadoAvancado.ah_total + (resultadoElevacao?.consumo_ah ?? 0))} Ah/ciclo × ${autonomiaAvancada.valor} ciclos`
+                        : `${fmt(calcularIMediaCombinadaAvancado())} A × ${autonomiaAvancada.valor} h`}
                     </p>
                   </div>
                 </div>
