@@ -89,10 +89,11 @@ export function calcularTrecho(
   let etaEfetivo: number;
   if (eq.modelo_rendimento === "regime" && eq.rendimento_regime) {
     const r = eq.rendimento_regime;
-    // Alta carga: aceleração positiva (vf > vi com tempo de aceleração > 0) OU rampa positiva
-    const temAceleracao = trecho.vf_kmh > trecho.vi_kmh && trecho.tempo_acel_s > 0;
-    const temRampa = trecho.angulo_graus > r.limiar_angulo_graus;
-    etaEfetivo = (temAceleracao || temRampa)
+    // Alta carga: aceleração positiva (vf > vi).
+    // Cruzeiro: velocidade constante ou desaceleração (vf ≤ vi).
+    // A inclinação NÃO altera o regime — ela age via F_rampa no cálculo de forças.
+    const isAltaCarga = trecho.vf_kmh > trecho.vi_kmh;
+    etaEfetivo = isAltaCarga
       ? Math.max(0.01, r.rendimento_alta_carga_pct / 100)
       : Math.max(0.01, r.rendimento_cruzeiro_pct / 100);
   } else {

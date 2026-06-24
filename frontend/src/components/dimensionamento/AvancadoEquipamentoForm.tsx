@@ -270,7 +270,7 @@ export default function AvancadoEquipamentoForm({
                   Baseado em análise de campo: motor elétrico opera com baixa eficiência em
                   cruzeiro leve (perdas fixas dominam). Ajuste conforme os dados do seu equipamento.
                 </p>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <Input
                       label="Alta carga / Aceleração (%)"
@@ -309,22 +309,6 @@ export default function AvancadoEquipamentoForm({
                       Velocidade constante em plano ou baixa carga.
                     </p>
                   </div>
-                  <div>
-                    <Input
-                      label="Limiar de rampa positiva (°)"
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="45"
-                      value={value.rendimento_regime.limiar_angulo_graus}
-                      onChange={(e) =>
-                        setRegime("limiar_angulo_graus", Number(e.target.value))
-                      }
-                    />
-                    <p className="mt-1 text-xs text-fullenergy-gray">
-                      Acima deste ângulo → regime de alta carga. Padrão: 1,15° ≈ 2%.
-                    </p>
-                  </div>
                 </div>
               </div>
 
@@ -334,16 +318,17 @@ export default function AvancadoEquipamentoForm({
                 </p>
                 <p className="text-xs text-blue-700">
                   <span className="font-semibold">Alta carga</span> (usa{" "}
-                  {value.rendimento_regime.rendimento_alta_carga_pct}%): trecho com{" "}
-                  <span className="italic">vf &gt; vi e tempo de aceleração &gt; 0</span>, ou com{" "}
-                  <span className="italic">
-                    rampa &gt; {value.rendimento_regime.limiar_angulo_graus.toFixed(2)}°
-                  </span>.
+                  {value.rendimento_regime.rendimento_alta_carga_pct}%
+                  ): velocidade final &gt; velocidade inicial — trecho com aceleração positiva.
                 </p>
                 <p className="mt-1 text-xs text-blue-700">
                   <span className="font-semibold">Cruzeiro</span> (usa{" "}
-                  {value.rendimento_regime.rendimento_cruzeiro_pct}%): todos os demais trechos
-                  (velocidade constante, descida, parada).
+                  {value.rendimento_regime.rendimento_cruzeiro_pct}%
+                  ): velocidade constante ou desaceleração (vf ≤ vi).
+                </p>
+                <p className="mt-2 text-xs text-blue-600">
+                  A inclinação do trecho continua afetando normalmente a força de rampa,
+                  potência e corrente — ela não interfere na seleção do rendimento.
                 </p>
               </div>
             </div>

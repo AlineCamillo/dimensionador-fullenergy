@@ -933,6 +933,11 @@ export default function Dimensionamento() {
               <BateriaRecomendada
                 celula={resultadoSelecaoAvancado.celula_selecionada}
                 resumo={resultadoSelecaoAvancado.resumo}
+                ahPorCiclo={
+                  resultadoAvancado
+                    ? resultadoAvancado.ah_total + (resultadoElevacao?.consumo_ah ?? 0)
+                    : undefined
+                }
               />
               <ResumoCards resumo={resultadoSelecaoAvancado.resumo} />
               <ComparativoTable linhas={resultadoSelecaoAvancado.comparativo} />

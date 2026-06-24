@@ -18,24 +18,27 @@
  */
 export type ModeloRendimentoAvancado = "fixo" | "regime";
 
-/** Configuração do modelo de rendimento por regime de operação. */
+/**
+ * Configuração do modelo de rendimento por regime de operação.
+ *
+ * Classificação automática por trecho:
+ *   - Alta carga: vf > vi (aceleração positiva)
+ *   - Cruzeiro:   vf ≤ vi (velocidade constante ou desaceleração)
+ *
+ * A inclinação não afeta a seleção de regime — ela age diretamente
+ * nas forças físicas (F_rampa) dentro do motor de cálculo.
+ */
 export interface ConfigRendimentoRegime {
   /** Rendimento em alta carga / aceleração (%) — ex: 75 */
   rendimento_alta_carga_pct: number;
   /** Rendimento em cruzeiro / carga leve (%) — ex: 35 */
   rendimento_cruzeiro_pct: number;
-  /**
-   * Limiar de inclinação positiva para classificar como "alta carga" (graus).
-   * Default: 1,146° ≈ rampa de 2%.
-   */
-  limiar_angulo_graus: number;
 }
 
 /** Valores padrão para o modelo de rendimento por regime. */
 export const CONFIG_RENDIMENTO_REGIME_PADRAO: ConfigRendimentoRegime = {
   rendimento_alta_carga_pct: 75,
   rendimento_cruzeiro_pct:   35,
-  limiar_angulo_graus:        1.146,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
