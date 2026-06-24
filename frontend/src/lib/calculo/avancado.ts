@@ -60,6 +60,9 @@ export function calcularTrecho(
   const aceleracao_ms2 =
     trecho.tempo_acel_s > 0 ? (vf_ms - vi_ms) / trecho.tempo_acel_s : 0;
 
+  // CRR efetivo: prioriza o CRR do trecho; fallback para o CRR global do equipamento
+  const crrEfetivo = trecho.crr !== undefined ? Math.max(0, trecho.crr) : crr;
+
   // ── Ângulo ─────────────────────────────────────────────────────────────────
   const ang_rad = (trecho.angulo_graus * Math.PI) / 180;
 
@@ -68,8 +71,8 @@ export function calcularTrecho(
   const f_inercial_n = M * aceleracao_ms2;
   // Força de rampa: F = m × g × sin(θ) — positiva na subida, negativa na descida
   const f_rampa_n = M * g * Math.sin(ang_rad);
-  // Resistência ao rolamento: F = CRR × m × g × cos(θ)
-  const f_rolamento_n = crr * M * g * Math.cos(ang_rad);
+  // Resistência ao rolamento: F = CRR × m × g × cos(θ) — usa CRR do trecho ou fallback global
+  const f_rolamento_n = crrEfetivo * M * g * Math.cos(ang_rad);
   // Arrasto aerodinâmico: F = ½ × ρ × Cd × A × vm²
   const f_aero_n = 0.5 * den_ar * cd * area_frontal * vm_ms * vm_ms;
   // Força total — valores negativos tratados como 0 (sem regeneração)
@@ -81,9 +84,24 @@ export function calcularTrecho(
   // ── Potência e Corrente ────────────────────────────────────────────────────
   // Potência mecânica na roda
   const p_mecanica_w = f_total_n * vm_ms;
+
+  // Rendimento efetivo — fixo ou por regime de operação
+  let etaEfetivo: number;
+  if (eq.modelo_rendimento === "regime" && eq.rendimento_regime) {
+    const r = eq.rendimento_regime;
+    // Alta carga: aceleração positiva (vf > vi com tempo de aceleração > 0) OU rampa positiva
+    const temAceleracao = trecho.vf_kmh > trecho.vi_kmh && trecho.tempo_acel_s > 0;
+    const temRampa = trecho.angulo_graus > r.limiar_angulo_graus;
+    etaEfetivo = (temAceleracao || temRampa)
+      ? Math.max(0.01, r.rendimento_alta_carga_pct / 100)
+      : Math.max(0.01, r.rendimento_cruzeiro_pct / 100);
+  } else {
+    // Modelo fixo — comportamento original
+    etaEfetivo = Math.max(0.01, rendimento);
+  }
+
   // Potência elétrica exigida da bateria (rendimento aplicado uma vez)
-  const eta = Math.max(0.01, rendimento);
-  const p_eletrica_w = p_mecanica_w / eta;
+  const p_eletrica_w = p_mecanica_w / etaEfetivo;
   // Corrente da bateria: I = P_elétrica / V  (sem √3 — sistema DC)
   const i_bateria_a = tensao > 0 ? p_eletrica_w / tensao : 0;
   // Consumo em Ah durante a duração total do trecho

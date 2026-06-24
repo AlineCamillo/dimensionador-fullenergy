@@ -8,6 +8,37 @@
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
+// MODELO DE RENDIMENTO
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Modelo de rendimento do sistema motor + controlador.
+ * "fixo"  — usa o campo `rendimento` global (comportamento original).
+ * "regime" — usa rendimentos distintos por regime de operação (alta carga / cruzeiro).
+ */
+export type ModeloRendimentoAvancado = "fixo" | "regime";
+
+/** Configuração do modelo de rendimento por regime de operação. */
+export interface ConfigRendimentoRegime {
+  /** Rendimento em alta carga / aceleração (%) — ex: 75 */
+  rendimento_alta_carga_pct: number;
+  /** Rendimento em cruzeiro / carga leve (%) — ex: 35 */
+  rendimento_cruzeiro_pct: number;
+  /**
+   * Limiar de inclinação positiva para classificar como "alta carga" (graus).
+   * Default: 1,146° ≈ rampa de 2%.
+   */
+  limiar_angulo_graus: number;
+}
+
+/** Valores padrão para o modelo de rendimento por regime. */
+export const CONFIG_RENDIMENTO_REGIME_PADRAO: ConfigRendimentoRegime = {
+  rendimento_alta_carga_pct: 75,
+  rendimento_cruzeiro_pct:   35,
+  limiar_angulo_graus:        1.146,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ENTRADA
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -33,6 +64,17 @@ export interface EquipamentoInput {
   den_ar: number;
   /** Aceleração da gravidade (m/s²) — padrão 9.81 */
   gravidade: number;
+  /**
+   * Modelo de rendimento do sistema.
+   * "fixo" (padrão) → usa `rendimento`.
+   * "regime" → usa `rendimento_regime` para selecionar η por tipo de operação.
+   */
+  modelo_rendimento?: ModeloRendimentoAvancado;
+  /**
+   * Configuração de rendimento por regime — presente apenas quando
+   * modelo_rendimento = "regime".
+   */
+  rendimento_regime?: ConfigRendimentoRegime;
 }
 
 /** Um trecho do ciclo operacional (aceleração, velocidade constante, rampa…). */
@@ -52,6 +94,18 @@ export interface TrechoInput {
   angulo_graus: number;
   /** Duração total do trecho (s) */
   tempo_total_s: number;
+  /**
+   * Superfície do trecho — informativo, preenchido pelo seletor da UI.
+   * Não afeta o cálculo diretamente; apenas reflete a escolha de superfície.
+   */
+  superficie?: string;
+  /**
+   * CRR específico do trecho.
+   * Quando informado, substitui o CRR global do equipamento no cálculo de F_rolamento.
+   * Fallback: CRR global do equipamento (campo `crr` em EquipamentoInput).
+   * Valor padrão recomendado: 0.020 (Asfalto comum).
+   */
+  crr?: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -156,21 +210,27 @@ export interface EquipamentoFormulario {
   den_ar: number;
   /** Aceleração da gravidade (m/s²) */
   gravidade: number;
+  /** Modelo de rendimento selecionado na UI. */
+  modelo_rendimento: ModeloRendimentoAvancado;
+  /** Configuração de rendimento por regime (sempre presente; ativo apenas quando modelo_rendimento = "regime"). */
+  rendimento_regime: ConfigRendimentoRegime;
 }
 
 /** Converte EquipamentoFormulario → EquipamentoInput para o motor de cálculo. */
 export function formularioParaEquipamento(f: EquipamentoFormulario): EquipamentoInput {
   return {
-    tensao:       f.tensao,
-    massa:        f.massa_base + f.carga_kg,
-    raio_roda:    f.raio_roda,
-    reducao:      f.reducao,
-    area_frontal: f.area_frontal,
-    rendimento:   f.rendimento,
-    crr:          f.crr,
-    cd:           f.cd,
-    den_ar:       f.den_ar,
-    gravidade:    f.gravidade,
+    tensao:            f.tensao,
+    massa:             f.massa_base + f.carga_kg,
+    raio_roda:         f.raio_roda,
+    reducao:           f.reducao,
+    area_frontal:      f.area_frontal,
+    rendimento:        f.rendimento,
+    crr:               f.crr,
+    cd:                f.cd,
+    den_ar:            f.den_ar,
+    gravidade:         f.gravidade,
+    modelo_rendimento: f.modelo_rendimento,
+    rendimento_regime: f.rendimento_regime,
   };
 }
 

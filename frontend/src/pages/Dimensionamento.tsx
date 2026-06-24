@@ -30,7 +30,7 @@ import { montarResumoAvancado } from "../lib/calculo/dimensionamento";
 import type { AutonomiaAvancadaInput } from "../lib/calculo/dimensionamento";
 import { escolherCelula } from "../lib/calculo/selecao_celula";
 import { montarComparativo } from "../lib/calculo/comparativo";
-import { formularioParaEquipamento } from "../types/avancado";
+import { formularioParaEquipamento, CONFIG_RENDIMENTO_REGIME_PADRAO } from "../types/avancado";
 import type {
   DimensionamentoRequest,
   DimensionamentoResponse,
@@ -120,6 +120,8 @@ const EQUIPAMENTO_FORM_PADRAO: EquipamentoFormulario = {
   cd:         0.30,
   den_ar:     1.205,
   gravidade:  9.81,
+  modelo_rendimento: "fixo",
+  rendimento_regime: { ...CONFIG_RENDIMENTO_REGIME_PADRAO },
 };
 
 /** Aplicação que ativa a seção opcional "Ciclo de Elevação". */
