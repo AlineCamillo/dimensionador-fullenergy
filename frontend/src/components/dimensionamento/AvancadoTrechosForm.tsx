@@ -4,7 +4,7 @@ import type { TrechoInput } from "../../types/avancado";
 import { REFERENCIAS_INCLINACAO } from "../../types/avancado";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Superfícies e CRR de referência
+// Superfícies e CRR de referência — biblioteca expandida por categoria
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface SuperficieRef {
@@ -13,16 +13,53 @@ export interface SuperficieRef {
   faixa: string;
 }
 
-export const SUPERFICIES: SuperficieRef[] = [
-  { label: "Asfalto liso",     crr: 0.012, faixa: "0,008–0,015" },
-  { label: "Asfalto comum",    crr: 0.020, faixa: "0,015–0,025" },
-  { label: "Concreto rugoso",  crr: 0.025, faixa: "0,020–0,030" },
-  { label: "Grama",            crr: 0.060, faixa: "0,040–0,080" },
-  { label: "Areia compactada", crr: 0.125, faixa: "0,100–0,150" },
-  { label: "Areia fofa",       crr: 0.200, faixa: "0,200+"      },
+export interface CategoriaCRR {
+  categoria: string;
+  itens: SuperficieRef[];
+}
+
+/**
+ * Biblioteca de CRR organizada por categoria de piso.
+ * Cobre aplicações industriais, logísticas, agrícolas e de mobilidade elétrica.
+ */
+export const SUPERFICIES_CATEGORIAS: CategoriaCRR[] = [
+  {
+    categoria: "Pisos Industriais",
+    itens: [
+      { label: "Piso epóxi industrial",   crr: 0.008, faixa: "0,006–0,010" },
+      { label: "Concreto polido",          crr: 0.010, faixa: "0,008–0,012" },
+      { label: "Concreto rugoso",          crr: 0.020, faixa: "0,015–0,025" },
+      { label: "Piso intertravado (paver)",crr: 0.025, faixa: "0,020–0,030" },
+    ],
+  },
+  {
+    categoria: "Vias Urbanas",
+    itens: [
+      { label: "Asfalto liso",              crr: 0.012, faixa: "0,008–0,015" },
+      { label: "Asfalto comum",             crr: 0.015, faixa: "0,012–0,020" },
+      { label: "Paralelepípedo regular",    crr: 0.030, faixa: "0,025–0,035" },
+      { label: "Paralelepípedo irregular",  crr: 0.040, faixa: "0,035–0,050" },
+    ],
+  },
+  {
+    categoria: "Terrenos Naturais",
+    itens: [
+      { label: "Brita compactada",  crr: 0.040, faixa: "0,030–0,050" },
+      { label: "Terra compactada",  crr: 0.050, faixa: "0,040–0,060" },
+      { label: "Grama seca",        crr: 0.060, faixa: "0,050–0,070" },
+      { label: "Grama úmida",       crr: 0.080, faixa: "0,070–0,100" },
+      { label: "Areia compactada",  crr: 0.120, faixa: "0,100–0,150" },
+      { label: "Areia fofa",        crr: 0.200, faixa: "0,150–0,250" },
+    ],
+  },
 ];
 
-const CRR_PADRAO = 0.020;
+/** Array plano derivado de SUPERFICIES_CATEGORIAS — usado para lookup por label. */
+export const SUPERFICIES: SuperficieRef[] = SUPERFICIES_CATEGORIAS.flatMap(
+  (cat) => cat.itens,
+);
+
+const CRR_PADRAO = 0.015;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos
@@ -40,11 +77,11 @@ export function novoTrechoFormulario(numero: number): TrechoFormulario {
     descricao: `Trecho ${numero}`,
     vi_kmh: 0,
     vf_kmh: 10,
-    tempo_acel_s: 10,
+    tempo_acel_s: 30,   // mantido = tempo_total_s (campo oculto na UI)
     angulo_graus: 0,
     tempo_total_s: 30,
     superficie: "Asfalto comum",
-    crr: CRR_PADRAO,
+    crr: CRR_PADRAO,  // 0.015 — Asfalto comum
   };
 }
 
@@ -105,25 +142,40 @@ function TabelaRefCRR() {
               </tr>
             </thead>
             <tbody>
-              {SUPERFICIES.map((s) => (
-                <tr
-                  key={s.label}
-                  className="border-b border-gray-100 last:border-0"
-                >
-                  <td className="py-1.5 pr-4 font-medium text-fullenergy-black">
-                    {s.label}
-                  </td>
-                  <td className="py-1.5 pr-4 text-fullenergy-gray">{s.faixa}</td>
-                  <td className="py-1.5 font-mono text-fullenergy-gray">
-                    {s.crr.toFixed(3)}
-                  </td>
-                </tr>
+              {SUPERFICIES_CATEGORIAS.map((cat) => (
+                <>
+                  <tr key={`cat-${cat.categoria}`}>
+                    <td
+                      colSpan={3}
+                      className="pb-1 pt-3 text-[10px] font-bold uppercase tracking-widest text-fullenergy-accent"
+                    >
+                      {cat.categoria}
+                    </td>
+                  </tr>
+                  {cat.itens.map((s) => (
+                    <tr
+                      key={s.label}
+                      className="border-b border-gray-100 last:border-0"
+                    >
+                      <td className="py-1.5 pr-4 font-medium text-fullenergy-black">
+                        {s.label}
+                      </td>
+                      <td className="py-1.5 pr-4 text-fullenergy-gray">{s.faixa}</td>
+                      <td className="py-1.5 font-mono text-fullenergy-gray">
+                        {s.crr.toFixed(3)}
+                      </td>
+                    </tr>
+                  ))}
+                </>
               ))}
             </tbody>
           </table>
           <p className="mt-3 text-xs text-fullenergy-gray">
-            CRR global do equipamento ainda é usado como fallback quando o
-            trecho não tiver valor definido.
+            Referência CRR: piso epóxi 0,008; concreto polido 0,010; asfalto comum 0,015;
+            paralelepípedo 0,030–0,040; grama 0,060–0,080; areia 0,120–0,200.
+          </p>
+          <p className="mt-1 text-xs text-fullenergy-gray">
+            CRR global do equipamento é usado como fallback quando o trecho não tiver valor definido.
           </p>
         </div>
       )}
@@ -206,6 +258,20 @@ export default function AvancadoTrechosForm({
     valor: TrechoFormulario[K],
   ) {
     onChange(trechos.map((t) => (t.id === id ? { ...t, [campo]: valor } : t)));
+  }
+
+  /**
+   * Atualiza tempo_total_s e mantém tempo_acel_s sincronizado.
+   * O motor usa tempo_acel_s para distribuir a variação de velocidade;
+   * ao igualar ao tempo total, a aceleração/desaceleração é distribuída
+   * ao longo de todo o trecho.
+   */
+  function handleTempoTotalChange(id: string, valor: number) {
+    onChange(
+      trechos.map((t) =>
+        t.id === id ? { ...t, tempo_total_s: valor, tempo_acel_s: valor } : t,
+      ),
+    );
   }
 
   // ── Inclinação ────────────────────────────────────────────────────────────
@@ -381,23 +447,8 @@ export default function AvancadoTrechosForm({
                   </div>
                 </div>
 
-                {/* Aceleração + Inclinação */}
+                {/* Inclinação */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Input
-                      label="Tempo para atingir a velocidade final (s)"
-                      type="number"
-                      step="1"
-                      min="0"
-                      value={trecho.tempo_acel_s}
-                      onChange={(e) =>
-                        atualizar(trecho.id, "tempo_acel_s", Number(e.target.value))
-                      }
-                    />
-                    <p className="mt-1 text-xs text-fullenergy-gray">
-                      Utilize 0 quando não houver aceleração.
-                    </p>
-                  </div>
 
                   {/* Inclinação com seletor de unidade + referência */}
                   <div>
@@ -473,17 +524,17 @@ export default function AvancadoTrechosForm({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Input
-                      label="Tempo total nesta condição operacional (s)"
+                      label="Tempo do percurso/trecho (s)"
                       type="number"
                       step="5"
                       min="1"
                       value={trecho.tempo_total_s}
                       onChange={(e) =>
-                        atualizar(trecho.id, "tempo_total_s", Number(e.target.value))
+                        handleTempoTotalChange(trecho.id, Number(e.target.value))
                       }
                     />
                     <p className="mt-1 text-xs text-fullenergy-gray">
-                      Tempo que o equipamento permanece nesta operação.
+                      Tempo total que o equipamento leva para percorrer este trecho.
                     </p>
                   </div>
                 </div>
@@ -508,10 +559,14 @@ export default function AvancadoTrechosForm({
                         className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-fullenergy-black focus:border-fullenergy-accent focus:outline-none focus:ring-1 focus:ring-fullenergy-accent"
                       >
                         <option value="">Personalizado</option>
-                        {SUPERFICIES.map((s) => (
-                          <option key={s.label} value={s.label}>
-                            {s.label}
-                          </option>
+                        {SUPERFICIES_CATEGORIAS.map((cat) => (
+                          <optgroup key={cat.categoria} label={cat.categoria}>
+                            {cat.itens.map((s) => (
+                              <option key={s.label} value={s.label}>
+                                {s.label} (CRR {s.crr.toFixed(3)})
+                              </option>
+                            ))}
+                          </optgroup>
                         ))}
                       </select>
                       <p className="mt-1 text-xs text-fullenergy-gray">
@@ -542,7 +597,7 @@ export default function AvancadoTrechosForm({
                         </p>
                       ) : (
                         <p className="mt-1 text-xs text-fullenergy-gray">
-                          Use valores maiores para pisos irregulares.
+                          Ref: epóxi 0,008 · concreto 0,010–0,020 · asfalto 0,012–0,015 · grama 0,060–0,080.
                         </p>
                       )}
                     </div>
