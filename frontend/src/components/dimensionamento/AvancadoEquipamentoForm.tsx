@@ -4,8 +4,6 @@ import type { EquipamentoFormulario } from "../../types/avancado";
 import {
   APLICACOES_AVANCADO,
   REFERENCIAS_INCLINACAO,
-  CONFIG_RENDIMENTO_REGIME_PADRAO,
-  type ModeloRendimentoAvancado,
 } from "../../types/avancado";
 
 interface AvancadoEquipamentoFormProps {
@@ -33,16 +31,6 @@ export default function AvancadoEquipamentoForm({
     novoValor: EquipamentoFormulario[K],
   ) {
     onChange({ ...value, [campo]: novoValor });
-  }
-
-  function setRegime<K extends keyof typeof CONFIG_RENDIMENTO_REGIME_PADRAO>(
-    campo: K,
-    novoValor: (typeof CONFIG_RENDIMENTO_REGIME_PADRAO)[K],
-  ) {
-    onChange({
-      ...value,
-      rendimento_regime: { ...value.rendimento_regime, [campo]: novoValor },
-    });
   }
 
   const massaTotal = value.massa_base + value.carga_kg;
@@ -223,117 +211,9 @@ export default function AvancadoEquipamentoForm({
 
         {/* Rendimento — referência */}
         <p className="text-xs text-fullenergy-gray">
-          Rendimento típico do sistema motor + transmissão: 0,85–0,95 em plena carga.
-          O CRR é definido individualmente em cada trecho de operação.
+          Rendimento global do conjunto: Bateria → Controlador → Motor → Transmissão → Rodas.
+          Valor típico: 0,70–0,90 para sistemas industriais. O CRR é definido individualmente em cada trecho.
         </p>
-
-        {/* Modelo de Rendimento */}
-        <div className="rounded-lg border border-gray-200 p-4">
-          <p className="mb-3 text-sm font-semibold text-fullenergy-black">
-            Modelo de Rendimento do Sistema
-          </p>
-
-          {/* Seletor de modelo */}
-          <div className="flex flex-col gap-1">
-            <label
-              htmlFor="avancado-modelo-rendimento"
-              className="text-sm font-medium text-fullenergy-gray"
-            >
-              Modelo de rendimento
-            </label>
-            <select
-              id="avancado-modelo-rendimento"
-              value={value.modelo_rendimento}
-              onChange={(e) =>
-                set("modelo_rendimento", e.target.value as ModeloRendimentoAvancado)
-              }
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-fullenergy-black focus:border-fullenergy-accent focus:outline-none focus:ring-1 focus:ring-fullenergy-accent sm:max-w-xs"
-            >
-              <option value="fixo">Rendimento fixo</option>
-              <option value="regime">Rendimento por regime de operação</option>
-            </select>
-            <p className="mt-1 text-xs text-fullenergy-gray">
-              {value.modelo_rendimento === "fixo"
-                ? "Usa o campo Rendimento do Sistema para todos os trechos (comportamento padrão)."
-                : "Aplica rendimentos distintos em aceleração/carga alta e em cruzeiro/carga leve."}
-            </p>
-          </div>
-
-          {/* Campos condicionais — apenas modo regime */}
-          {value.modelo_rendimento === "regime" && (
-            <div className="mt-4 space-y-4">
-              <div className="rounded-lg border border-fullenergy-yellow/40 bg-fullenergy-yellow/5 p-3">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
-                  Rendimentos por regime
-                </p>
-                <p className="mb-3 text-xs text-fullenergy-gray">
-                  Baseado em análise de campo: motor elétrico opera com baixa eficiência em
-                  cruzeiro leve (perdas fixas dominam). Ajuste conforme os dados do seu equipamento.
-                </p>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <Input
-                      label="Alta carga / Aceleração (%)"
-                      type="number"
-                      step="1"
-                      min="1"
-                      max="99"
-                      value={value.rendimento_regime.rendimento_alta_carga_pct}
-                      onChange={(e) =>
-                        setRegime(
-                          "rendimento_alta_carga_pct",
-                          Math.min(99, Math.max(1, Number(e.target.value))),
-                        )
-                      }
-                    />
-                    <p className="mt-1 text-xs text-fullenergy-gray">
-                      Trechos com aceleração positiva ou rampa ↑.
-                    </p>
-                  </div>
-                  <div>
-                    <Input
-                      label="Cruzeiro / Carga leve (%)"
-                      type="number"
-                      step="1"
-                      min="1"
-                      max="99"
-                      value={value.rendimento_regime.rendimento_cruzeiro_pct}
-                      onChange={(e) =>
-                        setRegime(
-                          "rendimento_cruzeiro_pct",
-                          Math.min(99, Math.max(1, Number(e.target.value))),
-                        )
-                      }
-                    />
-                    <p className="mt-1 text-xs text-fullenergy-gray">
-                      Velocidade constante em plano ou baixa carga.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-blue-700">
-                  Classificação automática por trecho
-                </p>
-                <p className="text-xs text-blue-700">
-                  <span className="font-semibold">Alta carga</span> (usa{" "}
-                  {value.rendimento_regime.rendimento_alta_carga_pct}%
-                  ): velocidade final &gt; velocidade inicial — trecho com aceleração positiva.
-                </p>
-                <p className="mt-1 text-xs text-blue-700">
-                  <span className="font-semibold">Cruzeiro</span> (usa{" "}
-                  {value.rendimento_regime.rendimento_cruzeiro_pct}%
-                  ): velocidade constante ou desaceleração (vf ≤ vi).
-                </p>
-                <p className="mt-2 text-xs text-blue-600">
-                  A inclinação do trecho continua afetando normalmente a força de rampa,
-                  potência e corrente — ela não interfere na seleção do rendimento.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* Parâmetros Avançados de Engenharia (recolhível) */}
         <div className="rounded-lg border border-gray-200">

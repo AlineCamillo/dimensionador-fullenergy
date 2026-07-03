@@ -85,21 +85,8 @@ export function calcularTrecho(
   // Potência mecânica na roda
   const p_mecanica_w = f_total_n * vm_ms;
 
-  // Rendimento efetivo — fixo ou por regime de operação
-  let etaEfetivo: number;
-  if (eq.modelo_rendimento === "regime" && eq.rendimento_regime) {
-    const r = eq.rendimento_regime;
-    // Alta carga: aceleração positiva (vf > vi).
-    // Cruzeiro: velocidade constante ou desaceleração (vf ≤ vi).
-    // A inclinação NÃO altera o regime — ela age via F_rampa no cálculo de forças.
-    const isAltaCarga = trecho.vf_kmh > trecho.vi_kmh;
-    etaEfetivo = isAltaCarga
-      ? Math.max(0.01, r.rendimento_alta_carga_pct / 100)
-      : Math.max(0.01, r.rendimento_cruzeiro_pct / 100);
-  } else {
-    // Modelo fixo — comportamento original
-    etaEfetivo = Math.max(0.01, rendimento);
-  }
+  // Rendimento global do sistema (Bateria → Controlador → Motor → Transmissão → Rodas)
+  const etaEfetivo = Math.max(0.01, rendimento);
 
   // Potência elétrica exigida da bateria (rendimento aplicado uma vez)
   const p_eletrica_w = p_mecanica_w / etaEfetivo;
