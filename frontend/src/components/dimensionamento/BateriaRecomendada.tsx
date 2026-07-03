@@ -6,7 +6,7 @@ interface BateriaRecomendadaProps {
   resumo: ResumoDimensionamento;
   /**
    * Quando true, ajusta labels para o modo Avançado:
-   *   - "Corrente Máxima Exigida" → "Corrente Média de Consumo"
+   *   - "Corrente Máxima Exigida" → "Corrente Média de Consumo (A)"
    *   - Remove "Corrente Média da Aplicação" (valor idêntico no modo avançado)
    */
   modoAvancado?: boolean;
@@ -204,7 +204,7 @@ export default function BateriaRecomendada({ celula, resumo, modoAvancado = fals
           <Card
             label={modoAvancado ? "Corrente Media de Consumo" : "Corrente Maxima Exigida"}
             value={`${fmt(resumo.i_max)} A`}
-            helper={modoAvancado ? "Media sobre trechos com consumo ativo" : undefined}
+            helper={modoAvancado ? "Média das correntes de consumo" : undefined}
           />
           {!modoAvancado && (
             <Card

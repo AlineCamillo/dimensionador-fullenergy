@@ -103,10 +103,11 @@ export function calcularTrecho(
 
   // Potência elétrica exigida da bateria (rendimento aplicado uma vez)
   const p_eletrica_w = p_mecanica_w / etaEfetivo;
-  // Corrente da bateria: I = P_elétrica / V  (sem √3 — sistema DC)
-  const i_bateria_a = tensao > 0 ? p_eletrica_w / tensao : 0;
-  // Consumo em Ah durante a duração total do trecho
-  const consumo_ah = (i_bateria_a * trecho.tempo_total_s) / 3600;
+  // Corrente da bateria: negativa por convenção do log FullEnergy (consumo = descarga = i < 0)
+  // Positivo = regeneração. Motor clampeia força em 0, então i ≤ 0 neste modelo.
+  const i_bateria_a = tensao > 0 ? -(p_eletrica_w / tensao) : 0;
+  // Consumo em Ah: usa |i| para acumular energia consumida (positivo)
+  const consumo_ah = (Math.abs(i_bateria_a) * trecho.tempo_total_s) / 3600;
 
   // ── Motor ──────────────────────────────────────────────────────────────────
   // Torque no eixo do motor: τ = F × R / redução
@@ -161,7 +162,7 @@ export function calcularCicloAvancado(
       ah_total: 0,
       energia_kwh: 0,
       energia_wh: 0,
-      i_media_a: 0,
+      correnteMediaConsumo: 0,
       tempo_consumo_s: 0,
       p_max_w: 0,
       p_equiv_w: 0,
@@ -191,12 +192,12 @@ export function calcularCicloAvancado(
   // Trechos de descida livre (força nula → i = 0) são excluídos do denominador.
   // Equivalente à média do |valor absoluto| das correntes negativas no log.
   //   tempo_consumo_s = Σ(t_i  para i_bateria > 0)
-  //   i_media_a       = Ah_total / (tempo_consumo_s / 3600)
+  //   correnteMediaConsumo       = Ah_total / (tempo_consumo_s / 3600)
   const tempo_consumo_s = resultados.reduce(
     (s, r, i) => (r.i_bateria_a > 0 ? s + trechos[i].tempo_total_s : s),
     0,
   );
-  const i_media_a =
+  const correnteMediaConsumo =
     tempo_consumo_s > 0 ? ah_total / (tempo_consumo_s / 3600) : 0;
 
   // ── Potências ──────────────────────────────────────────────────────────────
@@ -248,7 +249,7 @@ export function calcularCicloAvancado(
     ah_total,
     energia_kwh,
     energia_wh,
-    i_media_a,
+    correnteMediaConsumo,
     tempo_consumo_s,
     p_max_w,
     p_equiv_w,

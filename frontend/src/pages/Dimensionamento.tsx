@@ -264,7 +264,7 @@ export default function Dimensionamento() {
     // Plataforma Elevatória: soma o consumo da elevação hidráulica ao
     // consumo de deslocamento antes de dimensionar a bateria — tanto no
     // modo de autonomia "Ciclos" (Ah/kWh totais) quanto no modo "Horas"
-    // (corrente média combinada, ver calcularIMediaCombinadaAvancado).
+    // (corrente média combinada, ver calcularCorrenteConsumoAvancado).
     // Os motores de deslocamento e de elevação não são alterados — apenas
     // os totais já calculados por eles são combinados aqui.
     const cicloParaDimensionamento = resultadoElevacao
@@ -272,7 +272,7 @@ export default function Dimensionamento() {
           ...resultadoAvancado,
           ah_total: resultadoAvancado.ah_total + resultadoElevacao.consumo_ah,
           energia_kwh: resultadoAvancado.energia_kwh + resultadoElevacao.energia_kwh,
-          i_media_a: calcularIMediaCombinadaAvancado(),
+          correnteMediaConsumo: calcularCorrenteConsumoAvancado(),
         }
       : resultadoAvancado;
 
@@ -419,10 +419,10 @@ export default function Dimensionamento() {
     equipamentoForm.aplicacao === APLICACAO_PLATAFORMA_ELEVATORIA;
 
   /**
-   * Corrente média combinada (deslocamento + elevação) usada pelo modo de
+   * Corrente Média de Consumo combinada (deslocamento + elevação) usada pelo modo de
    * autonomia "Horas de operação".
    *
-   * Sem elevação ativa, retorna exatamente resultadoAvancado.i_media_a
+   * Sem elevação ativa, retorna exatamente resultadoAvancado.correnteMediaConsumo
    * (motor de deslocamento, inalterado).
    *
    * Com elevação ativa, combina os consumos de deslocamento e elevação.
@@ -433,9 +433,9 @@ export default function Dimensionamento() {
    *   Ah_total                = Ah_deslocamento + Ah_elevação
    *   I_media_consumo         = Ah_total / (tempo_consumo_combinado / 3600)
    */
-  function calcularIMediaCombinadaAvancado(): number {
+  function calcularCorrenteConsumoAvancado(): number {
     if (!resultadoAvancado) return 0;
-    if (!resultadoElevacao) return resultadoAvancado.i_media_a;
+    if (!resultadoElevacao) return resultadoAvancado.correnteMediaConsumo;
 
     const tempoElevacaoTotal_s =
       elevacaoForm.tempo_subida_s * Math.max(0, elevacaoForm.elevacoes_por_ciclo);
@@ -443,7 +443,7 @@ export default function Dimensionamento() {
     const tempoConsumoTotal_s = resultadoAvancado.tempo_consumo_s + tempoElevacaoTotal_s;
     const ahTotal = resultadoAvancado.ah_total + resultadoElevacao.consumo_ah;
 
-    return tempoConsumoTotal_s > 0 ? ahTotal / (tempoConsumoTotal_s / 3600) : resultadoAvancado.i_media_a;
+    return tempoConsumoTotal_s > 0 ? ahTotal / (tempoConsumoTotal_s / 3600) : resultadoAvancado.correnteMediaConsumo;
   }
 
   function fmt(n: number, casas = 2) {
@@ -715,7 +715,7 @@ export default function Dimensionamento() {
                       Corrente Média de Consumo
                     </p>
                     <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
-                      {fmt(resultadoAvancado.i_media_a)} A
+                      {fmt(resultadoAvancado.correnteMediaConsumo)} A
                     </p>
                     <p className="mt-0.5 text-xs text-fullenergy-gray">
                       Somente trechos com consumo ativo
@@ -821,7 +821,7 @@ export default function Dimensionamento() {
                               )}
                             </td>
                             <td className="py-2 pr-4 text-right tabular-nums">
-                              {fmt(t.i_bateria_a)}
+                              {fmt(Math.abs(t.i_bateria_a))}
                             </td>
                             <td className="py-2 pr-4 text-right tabular-nums">
                               {fmt(t.consumo_ah, 4)}
@@ -840,7 +840,7 @@ export default function Dimensionamento() {
                       <tr className="border-t-2 border-gray-300 font-semibold">
                         <td className="py-2 pr-4 text-fullenergy-black">Total</td>
                         <td className="py-2 pr-4 text-right tabular-nums">
-                          {fmt(resultadoAvancado.i_media_a)}
+                          {fmt(resultadoAvancado.correnteMediaConsumo)}
                         </td>
                         <td className="py-2 pr-4 text-right tabular-nums">
                           {fmt(resultadoAvancado.ah_total, 4)}

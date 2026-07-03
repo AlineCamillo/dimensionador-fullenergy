@@ -169,7 +169,7 @@ export interface ResultadoCicloAvancado {
    * Trechos de descida livre (força = 0 → i = 0) são excluídos do denominador.
    * Equivalente à média dos valores absolutos das correntes negativas no log.
    */
-  i_media_a: number;
+  correnteMediaConsumo: number;
   /** Tempo total dos trechos com consumo ativo (i_bateria_a > 0), em segundos. */
   tempo_consumo_s: number;
 

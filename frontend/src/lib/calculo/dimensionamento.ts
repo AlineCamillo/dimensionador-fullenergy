@@ -94,10 +94,10 @@ export function montarResumoAvancado(
 
   const resumo: ResumoDimensionamento = {
     potencia_total: ciclo.p_max_w,
-    // No modo Avançado, usar Corrente Média do Percurso para seleção de células.
+    // No modo Avançado, usar Corrente Média de Consumo (somente trechos com consumo) para seleção de células.
     // A corrente de pico não é modelada neste modo.
-    i_max:          ciclo.i_media_a,
-    i_media:        ciclo.i_media_a,
+    i_max:          ciclo.correnteMediaConsumo,
+    i_media:        ciclo.correnteMediaConsumo,
     ah_por_consumo: ah_necessario,
     ah_necessario,
     kwh_necessario: (ah_necessario * tensao) / 1000,
@@ -108,7 +108,7 @@ export function montarResumoAvancado(
   };
 
   const opcoes = CELULAS.map((celula) =>
-    calcularOpcaoCelula(celula, serie, v_nom, ah_necessario, ciclo.i_media_a, ciclo.i_media_a),
+    calcularOpcaoCelula(celula, serie, v_nom, ah_necessario, ciclo.correnteMediaConsumo, ciclo.correnteMediaConsumo),
   );
 
   return { resumo, opcoes };
