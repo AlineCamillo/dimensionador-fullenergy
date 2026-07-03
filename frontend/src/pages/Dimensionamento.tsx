@@ -425,20 +425,13 @@ export default function Dimensionamento() {
    * Sem elevação ativa, retorna exatamente resultadoAvancado.i_media_a
    * (motor de deslocamento, inalterado).
    *
-   * Com elevação ativa, distribui as duas energias (Ah) sobre a duração
-   * TOTAL do ciclo (tempo de deslocamento + tempo de elevação):
+   * Com elevação ativa, combina os consumos de deslocamento e elevação.
+   * Usa tempo_consumo_s (apenas trechos ativos) do deslocamento, mais o
+   * tempo de subida da elevação — ambos são 100% consumo ativo.
    *
-   *   tempo_elevacao_total_s = tempo_subida_s × elevações_por_ciclo
-   *   tempo_total_s          = tempo_deslocamento_s + tempo_elevacao_total_s
+   *   tempo_consumo_combinado = tempo_consumo_s_deslocamento + tempo_subida × N_elevações
    *   Ah_total                = Ah_deslocamento + Ah_elevação
-   *   I_media_total            = Ah_total / (tempo_total_s / 3600)
-   *
-   * Isso é algebricamente equivalente a:
-   *   I_media_total = I_media_deslocamento_recalculada_no_tempo_total
-   *                 + I_equivalente_elevação_distribuída_no_tempo_total
-   * pois ambos os termos têm o mesmo denominador (tempo_total_s/3600).
-   * Nem o motor de deslocamento nem o motor de elevação são alterados —
-   * apenas seus resultados já calculados são combinados aqui.
+   *   I_media_consumo         = Ah_total / (tempo_consumo_combinado / 3600)
    */
   function calcularIMediaCombinadaAvancado(): number {
     if (!resultadoAvancado) return 0;
@@ -446,10 +439,11 @@ export default function Dimensionamento() {
 
     const tempoElevacaoTotal_s =
       elevacaoForm.tempo_subida_s * Math.max(0, elevacaoForm.elevacoes_por_ciclo);
-    const tempoTotal_s = resultadoAvancado.tempo_total_s + tempoElevacaoTotal_s;
+    // Usa tempo_consumo_s (trechos com corrente > 0) em vez do tempo total do percurso
+    const tempoConsumoTotal_s = resultadoAvancado.tempo_consumo_s + tempoElevacaoTotal_s;
     const ahTotal = resultadoAvancado.ah_total + resultadoElevacao.consumo_ah;
 
-    return tempoTotal_s > 0 ? ahTotal / (tempoTotal_s / 3600) : resultadoAvancado.i_media_a;
+    return tempoConsumoTotal_s > 0 ? ahTotal / (tempoConsumoTotal_s / 3600) : resultadoAvancado.i_media_a;
   }
 
   function fmt(n: number, casas = 2) {
@@ -718,13 +712,13 @@ export default function Dimensionamento() {
                   {/* Corrente Média — destaque principal */}
                   <div className="rounded-lg border border-fullenergy-yellow bg-[#FEFCE8] p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
-                      Corrente Média do Percurso
+                      Corrente Média de Consumo
                     </p>
                     <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
                       {fmt(resultadoAvancado.i_media_a)} A
                     </p>
                     <p className="mt-0.5 text-xs text-fullenergy-gray">
-                      Corrente média ponderada pelo tempo
+                      Somente trechos com consumo ativo
                     </p>
                   </div>
                   <div className="rounded-lg border border-gray-200 p-4">

@@ -161,9 +161,17 @@ export interface ResultadoCicloAvancado {
   /** Energia total do ciclo em Wh (= energia_kwh × 1000) */
   energia_wh: number;
 
-  // Corrente — apenas a média ponderada pelo tempo
-  /** Corrente Média do Percurso (A) = Ah_total / horas_totais */
+  // Corrente — apenas consumo (amostras negativas no log / i_bateria > 0 no motor)
+  /**
+   * Corrente Média de Consumo (A) = Ah_total / tempo_consumo_s × 3600
+   *
+   * Considera SOMENTE os trechos onde há consumo real (i_bateria_a > 0).
+   * Trechos de descida livre (força = 0 → i = 0) são excluídos do denominador.
+   * Equivalente à média dos valores absolutos das correntes negativas no log.
+   */
   i_media_a: number;
+  /** Tempo total dos trechos com consumo ativo (i_bateria_a > 0), em segundos. */
+  tempo_consumo_s: number;
 
   // Potências
   p_max_w: number;
@@ -174,7 +182,7 @@ export interface ResultadoCicloAvancado {
   torque_max_nm: number;
   rpm_max: number;
 
-  // Ciclo
+  // Percurso
   tempo_total_s: number;
   /** Distância estimada (m) = Σ(vm × tempo_total) por trecho */
   distancia_total_m: number;

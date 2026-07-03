@@ -162,6 +162,7 @@ export function calcularCicloAvancado(
       energia_kwh: 0,
       energia_wh: 0,
       i_media_a: 0,
+      tempo_consumo_s: 0,
       p_max_w: 0,
       p_equiv_w: 0,
       torque_max_nm: 0,
@@ -185,10 +186,18 @@ export function calcularCicloAvancado(
   const energia_wh = energia_kwh * 1000;
   const tempo_total_s = trechos.reduce((s, t) => s + t.tempo_total_s, 0);
 
-  // ── Corrente Média do Percurso (única métrica de corrente) ─────────────────
-  // I_media = Ah_total / horas_totais — corrente média ponderada pelo tempo
+  // ── Corrente Média de Consumo ──────────────────────────────────────────────
+  // Considera SOMENTE trechos com corrente ativa (i_bateria_a > 0).
+  // Trechos de descida livre (força nula → i = 0) são excluídos do denominador.
+  // Equivalente à média do |valor absoluto| das correntes negativas no log.
+  //   tempo_consumo_s = Σ(t_i  para i_bateria > 0)
+  //   i_media_a       = Ah_total / (tempo_consumo_s / 3600)
+  const tempo_consumo_s = resultados.reduce(
+    (s, r, i) => (r.i_bateria_a > 0 ? s + trechos[i].tempo_total_s : s),
+    0,
+  );
   const i_media_a =
-    tempo_total_s > 0 ? ah_total / (tempo_total_s / 3600) : 0;
+    tempo_consumo_s > 0 ? ah_total / (tempo_consumo_s / 3600) : 0;
 
   // ── Potências ──────────────────────────────────────────────────────────────
   const p_max_w = resultados.reduce(
@@ -240,6 +249,7 @@ export function calcularCicloAvancado(
     energia_kwh,
     energia_wh,
     i_media_a,
+    tempo_consumo_s,
     p_max_w,
     p_equiv_w,
     torque_max_nm,
