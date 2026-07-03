@@ -5,13 +5,11 @@ interface BateriaRecomendadaProps {
   celula: OpcaoCelula | null | undefined;
   resumo: ResumoDimensionamento;
   /**
-   * Consumo real em Ah por ciclo completo (deslocamento + elevação).
-   * Presente apenas no modo Avançado. Quando informado:
-   *   - "Autonomia Estimada" é renomeada para "Autonomia do Ciclo Simulado"
-   *   - A métrica "Ciclos por Carga" é calculada e exibida em destaque.
-   * Fórmula: ciclos_por_carga = floor(capacidade_pack × 0,80 / ahPorCiclo)
+   * Quando true, ajusta labels para o modo Avançado:
+   *   - "Corrente Máxima Exigida" → "Corrente Média do Percurso"
+   *   - Remove "Corrente Média da Aplicação" (valor idêntico no modo avançado)
    */
-  ahPorCiclo?: number;
+  modoAvancado?: boolean;
 }
 
 function fmt(valor: number, casas = 2): string {
@@ -68,11 +66,7 @@ function SubSection({ title, children }: SubSectionProps) {
  *   3. Dados Tecnicos da Celula  — fisicos + correntes unitarias
  *   4. Margens  — capacidade e corrente vs. o exigido pela aplicacao
  */
-export default function BateriaRecomendada({ celula, resumo, ahPorCiclo }: BateriaRecomendadaProps) {
-  const modoAvancado = ahPorCiclo !== undefined && ahPorCiclo > 0;
-  const ciclosPorCarga = modoAvancado
-    ? Math.floor((celula?.capacidade_pack ?? 0) * 0.80 / ahPorCiclo!)
-    : null;
+export default function BateriaRecomendada({ celula, resumo, modoAvancado = false }: BateriaRecomendadaProps) {
 
   if (!celula) {
     return (
@@ -106,36 +100,6 @@ export default function BateriaRecomendada({ celula, resumo, ahPorCiclo }: Bater
           {celula.serie}S &middot; {celula.paralelo}P &middot; {celula.total_celulas} celulas
         </p>
 
-        {/* Ciclos por Carga — destaque (modo Avançado) */}
-        {modoAvancado && ciclosPorCarga !== null && (
-          <div className="mt-4 rounded-lg border border-fullenergy-yellow bg-fullenergy-yellow/20 p-4">
-            <div className="flex flex-wrap items-center gap-6">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-yellow">
-                  Ciclos por Carga
-                </p>
-                <p className="mt-1 font-heading text-3xl font-bold text-white">
-                  {ciclosPorCarga.toLocaleString("pt-BR")}
-                </p>
-                <p className="mt-0.5 text-xs text-gray-300">
-                  {fmt(celula.capacidade_pack)} Ah × 80% ÷ {fmt(ahPorCiclo!, 4)} Ah/ciclo
-                </p>
-              </div>
-              <div className="border-l border-white/20 pl-6">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  Consumo por Ciclo
-                </p>
-                <p className="mt-1 font-heading text-2xl font-bold text-white">
-                  {fmt(ahPorCiclo!, 4)} Ah
-                </p>
-                <p className="mt-0.5 text-xs text-gray-400">
-                  energia: {fmt(ahPorCiclo! * (celula.energia_pack / celula.capacidade_pack), 4)} kWh por ciclo
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <HeroMetric
             label="Capacidade"
@@ -146,13 +110,8 @@ export default function BateriaRecomendada({ celula, resumo, ahPorCiclo }: Bater
             value={`${fmt(celula.energia_pack)} kWh`}
           />
           <HeroMetric
-            label={modoAvancado ? "Autonomia do Ciclo Simulado" : "Autonomia Estimada"}
+            label="Autonomia Estimada"
             value={`${fmt(celula.autonomia)} h`}
-            helper={
-              modoAvancado
-                ? "Repetição contínua do ciclo definido"
-                : undefined
-            }
           />
           <HeroMetric
             label="Peso do Pack"
@@ -164,14 +123,6 @@ export default function BateriaRecomendada({ celula, resumo, ahPorCiclo }: Bater
             helper={`Fabricante: ${fmt(celula.cont_datasheet_pack)} A`}
           />
         </div>
-
-        {/* Disclaimer autonomia — modo Avançado */}
-        {modoAvancado && (
-          <p className="mt-3 text-xs text-gray-400">
-            ⚠ Autonomia calculada assumindo repetição contínua do ciclo simulado.
-            A autonomia real depende do padrão completo de operação do equipamento.
-          </p>
-        )}
       </div>
 
       {/* ── Configuracao do Pack ────────────────────────────────────────── */}
@@ -180,13 +131,15 @@ export default function BateriaRecomendada({ celula, resumo, ahPorCiclo }: Bater
           <Card label="Serie"            value={`${celula.serie}S`} />
           <Card label="Paralelo"         value={`${celula.paralelo}P`} />
           <Card label="Total de Celulas" value={`${celula.total_celulas}`} />
-          <Card
-            label="Corrente de Pico do Pack"
-            value={`${fmt(celula.pico_pack)} A`}
-            helper={`Fabricante: ${fmt(celula.pico_datasheet_pack)} A`}
-          />
+          {!modoAvancado && (
+            <Card
+              label="Corrente de Pico do Pack"
+              value={`${fmt(celula.pico_pack)} A`}
+              helper={`Fabricante: ${fmt(celula.pico_datasheet_pack)} A`}
+            />
+          )}
           <Card label="C-rate Continuo"  value={`${fmt(celula.c_rate_cont)} C`} />
-          <Card label="C-rate de Pico"   value={`${fmt(celula.c_rate_pico)} C`} />
+          {!modoAvancado && <Card label="C-rate de Operação" value={`${fmt(celula.c_rate_pico)} C`} />}
           <Card label="C-rate Utilizado" value={`${fmt(celula.c_rate_uso)} C`} />
         </div>
       </SubSection>
@@ -200,7 +153,7 @@ export default function BateriaRecomendada({ celula, resumo, ahPorCiclo }: Bater
             value={`${celula.comprimento_mm} x ${celula.largura_mm} x ${celula.altura_mm} mm`}
           />
           <Card
-            label="Ciclos de Vida"
+            label="Vida Útil (ciclos)"
             value={`${celula.ciclos.toLocaleString("pt-BR")}`}
           />
           <Card
@@ -208,16 +161,18 @@ export default function BateriaRecomendada({ celula, resumo, ahPorCiclo }: Bater
             value={`${fmt(celula.cont_recomendado)} A`}
             helper={`Corrente Continua do Fabricante: ${fmt(celula.cont_datasheet)} A`}
           />
-          <Card
-            label="Corrente de Pico Recomendada da Celula"
-            value={`${fmt(celula.pico_recomendado)} A`}
-            helper={`Corrente de Pico do Fabricante: ${fmt(celula.pico_datasheet)} A`}
-          />
+          {!modoAvancado && (
+            <Card
+              label="Corrente de Pico Recomendada da Celula"
+              value={`${fmt(celula.pico_recomendado)} A`}
+              helper={`Corrente de Pico do Fabricante: ${fmt(celula.pico_datasheet)} A`}
+            />
+          )}
         </div>
 
         <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
-            Condicao de Ciclos
+            Condição de Vida Útil
           </p>
           <p className="mt-1 text-sm text-fullenergy-black">{celula.condicao_ciclos}</p>
         </div>
@@ -247,13 +202,16 @@ export default function BateriaRecomendada({ celula, resumo, ahPorCiclo }: Bater
             helper={`Pack ${fmt(celula.cont_pack)} A menos exigido ${fmt(resumo.i_max)} A`}
           />
           <Card
-            label="Corrente Maxima Exigida"
+            label={modoAvancado ? "Corrente Media do Percurso" : "Corrente Maxima Exigida"}
             value={`${fmt(resumo.i_max)} A`}
+            helper={modoAvancado ? "Corrente media ponderada pelo tempo" : undefined}
           />
-          <Card
-            label="Corrente Media da Aplicacao"
-            value={`${fmt(resumo.i_media)} A`}
-          />
+          {!modoAvancado && (
+            <Card
+              label="Corrente Media da Aplicacao"
+              value={`${fmt(resumo.i_media)} A`}
+            />
+          )}
         </div>
       </SubSection>
 

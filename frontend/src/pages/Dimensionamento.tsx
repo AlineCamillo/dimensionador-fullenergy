@@ -27,7 +27,6 @@ import {
   type ElevacaoResultado,
 } from "../lib/calculo/elevacao";
 import { montarResumoAvancado } from "../lib/calculo/dimensionamento";
-import type { AutonomiaAvancadaInput } from "../lib/calculo/dimensionamento";
 import { escolherCelula } from "../lib/calculo/selecao_celula";
 import { montarComparativo } from "../lib/calculo/comparativo";
 import { formularioParaEquipamento, CONFIG_RENDIMENTO_REGIME_PADRAO } from "../types/avancado";
@@ -70,7 +69,7 @@ const MODOS: { key: ModoDimensionamento; label: string; descricao: string }[] = 
     key: "avancado",
     label: "Dimensionamento Avancado",
     descricao:
-      "Utilize este modo para simular o consumo real do equipamento atraves de peso, velocidade, rampas, aceleracoes e ciclos de operacao.",
+      "Utilize este modo para simular o consumo real do equipamento atraves de peso, velocidade, rampas, aceleracoes e percursos de operação.",
   },
 ];
 
@@ -168,9 +167,6 @@ export default function Dimensionamento() {
   const [resultadoAvancado, setResultadoAvancado] =
     useState<ResultadoCicloAvancado | null>(null);
   const [erroAvancado, setErroAvancado] = useState<string | null>(null);
-  const [autonomiaAvancada, setAutonomiaAvancada] = useState<AutonomiaAvancadaInput>(
-    { modo: "ciclos", valor: 8 },
-  );
   const [modoSelecaoAvancado, setModoSelecaoAvancado] = useState<ModoSelecaoUI>("automatica");
   const [celulaManualAvancado, setCelulaManualAvancado] = useState("");
   const [resultadoSelecaoAvancado, setResultadoSelecaoAvancado] =
@@ -283,7 +279,6 @@ export default function Dimensionamento() {
     const { resumo, opcoes } = montarResumoAvancado(
       cicloParaDimensionamento,
       equipamentoForm.tensao,
-      autonomiaAvancada,
     );
     const modo =
       modoSelecaoAvancado === "automatica"
@@ -337,7 +332,6 @@ export default function Dimensionamento() {
               void id;
               return t;
             }),
-            autonomia: autonomiaAvancada,
           },
           resultado: resultadoSelecaoAvancado,
         };
@@ -400,7 +394,6 @@ export default function Dimensionamento() {
       setTrechosAvancado([novoTrechoFormulario(1)]);
       setResultadoAvancado(null);
       setErroAvancado(null);
-      setAutonomiaAvancada({ modo: "ciclos", valor: 8 });
       setModoSelecaoAvancado("automatica");
       setCelulaManualAvancado("");
       setResultadoSelecaoAvancado(null);
@@ -609,15 +602,15 @@ export default function Dimensionamento() {
           {resultadoAvancado && (
             <div className="space-y-4">
 
-              {/* Bloco 1: Consumo do Ciclo */}
+              {/* Bloco 1: Consumo do Percurso */}
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                 <h2 className="mb-4 font-heading text-lg font-semibold text-fullenergy-black">
-                  Consumo do Ciclo
+                  Consumo do Percurso
                 </h2>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="rounded-lg border border-fullenergy-yellow bg-[#FEFCE8] p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
-                      Ah por Ciclo
+                      Capacidade Consumida
                     </p>
                     <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
                       {fmt(resultadoAvancado.ah_total)} Ah
@@ -625,7 +618,7 @@ export default function Dimensionamento() {
                   </div>
                   <div className="rounded-lg border border-fullenergy-yellow bg-[#FEFCE8] p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
-                      kWh por Ciclo
+                      Energia Consumida
                     </p>
                     <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
                       {fmt(resultadoAvancado.energia_kwh)} kWh
@@ -639,7 +632,7 @@ export default function Dimensionamento() {
                       {fmt(resultadoAvancado.distancia_total_m)} m
                     </p>
                     <p className="mt-0.5 text-xs text-fullenergy-gray">
-                      {fmt(resultadoAvancado.tempo_total_s / 60, 1)} min de ciclo
+                      {fmt(resultadoAvancado.tempo_total_s / 60, 1)} min de percurso
                     </p>
                   </div>
                 </div>
@@ -665,7 +658,7 @@ export default function Dimensionamento() {
                     </div>
                     <div className="rounded-lg border border-fullenergy-yellow bg-[#FEFCE8] p-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
-                        Ah de Elevação (ciclo)
+                        Ah de Elevação (percurso)
                       </p>
                       <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
                         {fmt(resultadoElevacao.consumo_ah)} Ah
@@ -689,7 +682,7 @@ export default function Dimensionamento() {
                   <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="rounded-lg border border-fullenergy-accent bg-orange-50 p-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
-                        Ah Total do Ciclo (Deslocamento + Elevação)
+                        Ah Total do Percurso (Deslocamento + Elevação)
                       </p>
                       <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
                         {fmt(resultadoAvancado.ah_total + resultadoElevacao.consumo_ah)} Ah
@@ -700,7 +693,7 @@ export default function Dimensionamento() {
                     </div>
                     <div className="rounded-lg border border-fullenergy-accent bg-orange-50 p-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
-                        kWh Total do Ciclo (Deslocamento + Elevação)
+                        kWh Total do Percurso (Deslocamento + Elevação)
                       </p>
                       <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
                         {fmt(resultadoAvancado.energia_kwh + resultadoElevacao.energia_kwh)} kWh
@@ -716,15 +709,16 @@ export default function Dimensionamento() {
                 </div>
               )}
 
-              {/* Bloco 2: Requisitos da Bateria */}
+              {/* Bloco 2: Parâmetros do Percurso */}
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                 <h2 className="mb-4 font-heading text-lg font-semibold text-fullenergy-black">
-                  Requisitos da Bateria
+                  Parâmetros do Percurso
                 </h2>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <div className="rounded-lg border border-gray-200 p-4">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  {/* Corrente Média — destaque principal */}
+                  <div className="rounded-lg border border-fullenergy-yellow bg-[#FEFCE8] p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
-                      Corrente Continua Requerida
+                      Corrente Média do Percurso
                     </p>
                     <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
                       {fmt(resultadoAvancado.i_media_a)} A
@@ -735,24 +729,64 @@ export default function Dimensionamento() {
                   </div>
                   <div className="rounded-lg border border-gray-200 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
-                      Corrente de Pico Requerida
+                      Tensão da Bateria
                     </p>
                     <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
-                      {fmt(resultadoAvancado.i_max_a)} A
-                    </p>
-                    <p className="mt-0.5 text-xs text-fullenergy-gray">
-                      Corrente máxima instantânea no ciclo
+                      {fmt(equipamentoForm.tensao, 0)} V
                     </p>
                   </div>
                   <div className="rounded-lg border border-gray-200 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
-                      Energia Requerida
+                      Velocidade Média
                     </p>
                     <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
-                      {fmt(resultadoAvancado.energia_kwh)} kWh
+                      {fmt(resultadoAvancado.velocidade_media_kmh, 1)} km/h
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
+                      Velocidade Máxima
+                    </p>
+                    <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
+                      {fmt(resultadoAvancado.v_max_kmh, 1)} km/h
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
+                      Consumo Específico
+                    </p>
+                    <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
+                      {fmt(resultadoAvancado.consumo_wh_km, 1)} Wh/km
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
+                      Consumo Específico
+                    </p>
+                    <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
+                      {fmt(resultadoAvancado.consumo_ah_km, 4)} Ah/km
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
+                      Potência Média do Motor
+                    </p>
+                    <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
+                      {fmt(resultadoAvancado.p_equiv_w / 1000, 2)} kW
                     </p>
                     <p className="mt-0.5 text-xs text-fullenergy-gray">
-                      Potência RMS: {fmt(resultadoAvancado.p_equiv_w / 1000)} kW
+                      Potência RMS ponderada
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
+                      Tempo do Percurso
+                    </p>
+                    <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
+                      {fmt(resultadoAvancado.tempo_total_s, 0)} s
+                    </p>
+                    <p className="mt-0.5 text-xs text-fullenergy-gray">
+                      {fmt(resultadoAvancado.tempo_total_s / 60, 1)} min
                     </p>
                   </div>
                 </div>
@@ -768,10 +802,10 @@ export default function Dimensionamento() {
                     <thead>
                       <tr className="border-b border-gray-200 text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
                         <th className="pb-2 pr-4">Nome da Operação</th>
-                        <th className="pb-2 pr-4 text-right">Corrente Máx. (A)</th>
+                        <th className="pb-2 pr-4 text-right">Corrente Média (A)</th>
                         <th className="pb-2 pr-4 text-right">Consumo (Ah)</th>
                         <th className="pb-2 pr-4 text-right">Energia (kWh)</th>
-                        <th className="pb-2 text-right">Potência Máx. (W)</th>
+                        <th className="pb-2 text-right">Potência (W)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -812,7 +846,7 @@ export default function Dimensionamento() {
                       <tr className="border-t-2 border-gray-300 font-semibold">
                         <td className="py-2 pr-4 text-fullenergy-black">Total</td>
                         <td className="py-2 pr-4 text-right tabular-nums">
-                          {fmt(resultadoAvancado.i_max_a)}
+                          {fmt(resultadoAvancado.i_media_a)}
                         </td>
                         <td className="py-2 pr-4 text-right tabular-nums">
                           {fmt(resultadoAvancado.ah_total, 4)}
@@ -836,74 +870,6 @@ export default function Dimensionamento() {
                 </div>
               </div>
 
-              {/* ── Autonomia Desejada ──────────────────────────────────────── */}
-              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 className="mb-1 font-heading text-lg font-semibold text-fullenergy-black">
-                  Autonomia Desejada
-                </h2>
-                <p className="mb-4 text-sm text-fullenergy-gray">
-                  Informe quantos ciclos ou horas de operação a bateria deve suportar por carga.
-                </p>
-                <div className="flex flex-wrap items-end gap-4">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-fullenergy-gray">
-                      Modo de autonomia
-                    </label>
-                    <select
-                      value={autonomiaAvancada.modo}
-                      onChange={(e) =>
-                        setAutonomiaAvancada((prev) => ({
-                          ...prev,
-                          modo: e.target.value as "ciclos" | "horas",
-                        }))
-                      }
-                      className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-fullenergy-black focus:border-fullenergy-accent focus:outline-none focus:ring-1 focus:ring-fullenergy-accent"
-                    >
-                      <option value="ciclos">Ciclos por carga</option>
-                      <option value="horas">Horas de operação</option>
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-fullenergy-gray">
-                      {autonomiaAvancada.modo === "ciclos"
-                        ? "Número de ciclos"
-                        : "Horas de operação"}
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      step={autonomiaAvancada.modo === "ciclos" ? "1" : "0.5"}
-                      value={autonomiaAvancada.valor}
-                      onChange={(e) =>
-                        setAutonomiaAvancada((prev) => ({
-                          ...prev,
-                          valor: Number(e.target.value),
-                        }))
-                      }
-                      className="w-32 rounded-md border border-gray-300 px-3 py-2 text-sm text-fullenergy-black focus:border-fullenergy-accent focus:outline-none focus:ring-1 focus:ring-fullenergy-accent"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <p className="text-xs font-semibold text-fullenergy-gray">
-                      Capacidade necessária
-                    </p>
-                    <p className="font-heading text-base font-bold text-fullenergy-black">
-                      {fmt(
-                        autonomiaAvancada.modo === "ciclos"
-                          ? (resultadoAvancado.ah_total + (resultadoElevacao?.consumo_ah ?? 0)) *
-                              autonomiaAvancada.valor
-                          : calcularIMediaCombinadaAvancado() * autonomiaAvancada.valor,
-                      )}{" "}
-                      Ah
-                    </p>
-                    <p className="text-xs text-fullenergy-gray">
-                      {autonomiaAvancada.modo === "ciclos"
-                        ? `${fmt(resultadoAvancado.ah_total + (resultadoElevacao?.consumo_ah ?? 0))} Ah/ciclo × ${autonomiaAvancada.valor} ciclos`
-                        : `${fmt(calcularIMediaCombinadaAvancado())} A × ${autonomiaAvancada.valor} h`}
-                    </p>
-                  </div>
-                </div>
-              </div>
 
               {/* ── Seleção de Célula ────────────────────────────────────────── */}
               <SelecaoCelulaForm
@@ -933,11 +899,7 @@ export default function Dimensionamento() {
               <BateriaRecomendada
                 celula={resultadoSelecaoAvancado.celula_selecionada}
                 resumo={resultadoSelecaoAvancado.resumo}
-                ahPorCiclo={
-                  resultadoAvancado
-                    ? resultadoAvancado.ah_total + (resultadoElevacao?.consumo_ah ?? 0)
-                    : undefined
-                }
+                modoAvancado={true}
               />
               <ResumoCards resumo={resultadoSelecaoAvancado.resumo} />
               <ComparativoTable linhas={resultadoSelecaoAvancado.comparativo} />

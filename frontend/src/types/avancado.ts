@@ -158,14 +158,16 @@ export interface ResultadoCicloAvancado {
   // Energia total
   ah_total: number;
   energia_kwh: number;
+  /** Energia total do ciclo em Wh (= energia_kwh × 1000) */
+  energia_wh: number;
 
-  // Correntes
-  i_max_a: number;
+  // Corrente — apenas a média ponderada pelo tempo
+  /** Corrente Média do Percurso (A) = Ah_total / horas_totais */
   i_media_a: number;
 
   // Potências
   p_max_w: number;
-  /** Potência equivalente RMS ponderada pelo tempo (W) */
+  /** Potência média equivalente RMS ponderada pelo tempo (W) */
   p_equiv_w: number;
 
   // Motor
@@ -176,6 +178,14 @@ export interface ResultadoCicloAvancado {
   tempo_total_s: number;
   /** Distância estimada (m) = Σ(vm × tempo_total) por trecho */
   distancia_total_m: number;
+  /** Velocidade média do ciclo (km/h) = distância / tempo */
+  velocidade_media_kmh: number;
+  /** Velocidade máxima no ciclo (km/h) = max(vi, vf) de todos os trechos */
+  v_max_kmh: number;
+  /** Consumo específico de energia (Wh/km) */
+  consumo_wh_km: number;
+  /** Consumo específico de capacidade (Ah/km) */
+  consumo_ah_km: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -12,7 +12,6 @@ import type {
   DimensionamentoResponse,
 } from "./dimensionamento";
 import type { EquipamentoFormulario, TrechoInput } from "./avancado";
-import type { AutonomiaAvancadaInput } from "../lib/calculo/dimensionamento";
 
 /** Tipo de dimensionamento de um projeto salvo (coluna `tipo` da tabela). */
 export type TipoProjetoSalvo = "padrao" | "retrofit" | "avancado";
@@ -28,7 +27,6 @@ export interface DadosEntradaAvancado {
   tipo: "avancado";
   equipamento: EquipamentoFormulario;
   trechos: TrechoInput[];
-  autonomia: AutonomiaAvancadaInput;
 }
 
 export type DadosEntradaProjeto = DadosEntradaPadrao | DadosEntradaAvancado;

@@ -160,7 +160,7 @@ export function calcularCicloAvancado(
       trechos: [],
       ah_total: 0,
       energia_kwh: 0,
-      i_max_a: 0,
+      energia_wh: 0,
       i_media_a: 0,
       p_max_w: 0,
       p_equiv_w: 0,
@@ -168,6 +168,10 @@ export function calcularCicloAvancado(
       rpm_max: 0,
       tempo_total_s: 0,
       distancia_total_m: 0,
+      velocidade_media_kmh: 0,
+      v_max_kmh: 0,
+      consumo_wh_km: 0,
+      consumo_ah_km: 0,
     };
   }
 
@@ -178,14 +182,11 @@ export function calcularCicloAvancado(
   // ── Totais ─────────────────────────────────────────────────────────────────
   const ah_total = resultados.reduce((s, r) => s + r.consumo_ah, 0);
   const energia_kwh = (ah_total * equipamento.tensao) / 1000;
+  const energia_wh = energia_kwh * 1000;
   const tempo_total_s = trechos.reduce((s, t) => s + t.tempo_total_s, 0);
 
-  // ── Correntes ──────────────────────────────────────────────────────────────
-  const i_max_a = resultados.reduce(
-    (max, r) => Math.max(max, r.i_bateria_a),
-    0,
-  );
-  // Corrente média ponderada pelo tempo = Ah_total / horas_totais
+  // ── Corrente Média do Percurso (única métrica de corrente) ─────────────────
+  // I_media = Ah_total / horas_totais — corrente média ponderada pelo tempo
   const i_media_a =
     tempo_total_s > 0 ? ah_total / (tempo_total_s / 3600) : 0;
 
@@ -213,18 +214,31 @@ export function calcularCicloAvancado(
     0,
   );
 
-  // ── Distância estimada ─────────────────────────────────────────────────────
-  // Σ(vm_ms × tempo_total_s) por trecho
+  // ── Distância e velocidades ────────────────────────────────────────────────
+  // Distância estimada: Σ(vm_ms × tempo_total_s) por trecho
   const distancia_total_m = resultados.reduce(
     (s, r, i) => s + r.vm_ms * trechos[i].tempo_total_s,
     0,
   );
+  // Velocidade média do ciclo (km/h)
+  const velocidade_media_kmh =
+    tempo_total_s > 0 ? (distancia_total_m / tempo_total_s) * 3.6 : 0;
+  // Velocidade máxima: maior vi ou vf entre todos os trechos
+  const v_max_kmh = trechos.reduce(
+    (max, t) => Math.max(max, t.vi_kmh, t.vf_kmh),
+    0,
+  );
+
+  // ── Consumo específico ─────────────────────────────────────────────────────
+  const distancia_km = distancia_total_m / 1000;
+  const consumo_wh_km = distancia_km > 0 ? energia_wh / distancia_km : 0;
+  const consumo_ah_km = distancia_km > 0 ? ah_total / distancia_km : 0;
 
   return {
     trechos: resultados,
     ah_total,
     energia_kwh,
-    i_max_a,
+    energia_wh,
     i_media_a,
     p_max_w,
     p_equiv_w,
@@ -232,5 +246,9 @@ export function calcularCicloAvancado(
     rpm_max,
     tempo_total_s,
     distancia_total_m,
+    velocidade_media_kmh,
+    v_max_kmh,
+    consumo_wh_km,
+    consumo_ah_km,
   };
 }

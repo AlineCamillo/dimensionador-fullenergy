@@ -74,43 +74,29 @@ export function calcularOpcoes(
 // Modo Avançado — ponte entre ciclo físico e seleção de células
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Modo e valor de autonomia para o modo avançado. */
-export interface AutonomiaAvancadaInput {
-  /**
-   * "ciclos": ah_necessario = ah_total × valor
-   * "horas" : ah_necessario = i_media_a × valor
-   */
-  modo: "ciclos" | "horas";
-  valor: number;
-}
-
 /**
  * Constrói ResumoDimensionamento + opcoes a partir do resultado do ciclo avançado.
  *
- * Substitui calcularOpcoes() para o modo avançado: o motor físico já calculou
- * todos os dados elétricos. Esta função monta o resumo e calcula a configuração
- * série/paralelo para cada célula do catálogo — sem alterar nenhuma fórmula.
+ * Dimensiona a bateria para suportar exatamente o percurso analisado:
+ *   ah_necessario = ciclo.ah_total  (consumo real do percurso)
  *
- * Fórmulas de capacidade:
- *   modo "ciclos": ah_necessario = ciclo.ah_total × autonomia.valor
- *   modo "horas" : ah_necessario = ciclo.i_media_a × autonomia.valor
+ * Para o caso de Plataforma Elevatória, ciclo.ah_total já inclui o consumo
+ * combinado (deslocamento + elevação), calculado antes da chamada.
  */
 export function montarResumoAvancado(
   ciclo: ResultadoCicloAvancado,
   tensao: number,
-  autonomia: AutonomiaAvancadaInput,
 ): ResultadoOpcoes {
-  const ah_necessario =
-    autonomia.modo === "ciclos"
-      ? ciclo.ah_total * autonomia.valor
-      : ciclo.i_media_a * autonomia.valor;
+  const ah_necessario = ciclo.ah_total;
 
   const serie = seriePorTensao(tensao);
   const [v_nom, v_max, v_min] = tensoesPack(serie);
 
   const resumo: ResumoDimensionamento = {
     potencia_total: ciclo.p_max_w,
-    i_max:          ciclo.i_max_a,
+    // No modo Avançado, usar Corrente Média do Percurso para seleção de células.
+    // A corrente de pico não é modelada neste modo.
+    i_max:          ciclo.i_media_a,
     i_media:        ciclo.i_media_a,
     ah_por_consumo: ah_necessario,
     ah_necessario,
@@ -122,7 +108,7 @@ export function montarResumoAvancado(
   };
 
   const opcoes = CELULAS.map((celula) =>
-    calcularOpcaoCelula(celula, serie, v_nom, ah_necessario, ciclo.i_max_a, ciclo.i_media_a),
+    calcularOpcaoCelula(celula, serie, v_nom, ah_necessario, ciclo.i_media_a, ciclo.i_media_a),
   );
 
   return { resumo, opcoes };
