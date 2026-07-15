@@ -49,6 +49,7 @@ export function calcularTrecho(
     tensao,
     raio_roda,
     reducao,
+    potencia_motor_kw,
   } = eq;
 
   // ── Cinemática ─────────────────────────────────────────────────────────────
@@ -90,11 +91,29 @@ export function calcularTrecho(
 
   // Potência elétrica exigida da bateria (rendimento aplicado uma vez)
   const p_eletrica_w = p_mecanica_w / etaEfetivo;
-  // Corrente da bateria: negativa por convenção do log FullEnergy (consumo = descarga = i < 0)
-  // Positivo = regeneração. Motor clampeia força em 0, então i ≤ 0 neste modelo.
-  const i_bateria_a = tensao > 0 ? -(p_eletrica_w / tensao) : 0;
-  // Consumo em Ah: usa |i| para acumular energia consumida (positivo)
-  const consumo_ah = (Math.abs(i_bateria_a) * trecho.tempo_total_s) / 3600;
+  // Corrente física estimada pelo modelo (positiva = consumo neste dimensionador teórico)
+  const i_fisico_a = tensao > 0 ? p_eletrica_w / tensao : 0;
+
+  // ── Piso de corrente baseado na potência nominal do motor ─────────────────
+  // Evita subestimativa em trechos onde a força calculada é muito baixa.
+  //   i_nominal = P_motor_W / (V × η)
+  //   Aceleração  (vf > vi): piso = 60% × i_nominal
+  //   Cruzeiro    (vf = vi): piso = 40% × i_nominal
+  //   Desaceleração (vf < vi): sem piso
+  let i_bateria_a = i_fisico_a;
+  if (potencia_motor_kw && potencia_motor_kw > 0 && i_fisico_a > 0) {
+    const i_nominal = (potencia_motor_kw * 1000) / (tensao * etaEfetivo);
+    let i_piso = 0;
+    if (trecho.vf_kmh > trecho.vi_kmh) {
+      i_piso = 0.60 * i_nominal;   // aceleração
+    } else if (trecho.vf_kmh === trecho.vi_kmh) {
+      i_piso = 0.40 * i_nominal;   // cruzeiro
+    }
+    i_bateria_a = Math.max(i_fisico_a, i_piso);
+  }
+
+  // Consumo em Ah durante a duração total do trecho
+  const consumo_ah = (i_bateria_a * trecho.tempo_total_s) / 3600;
 
   // ── Motor ──────────────────────────────────────────────────────────────────
   // Torque no eixo do motor: τ = F × R / redução
@@ -177,9 +196,8 @@ export function calcularCicloAvancado(
   // ── Corrente Média de Consumo ──────────────────────────────────────────────
   // Considera SOMENTE trechos com corrente ativa (i_bateria_a > 0).
   // Trechos de descida livre (força nula → i = 0) são excluídos do denominador.
-  // Equivalente à média do |valor absoluto| das correntes negativas no log.
   //   tempo_consumo_s = Σ(t_i  para i_bateria > 0)
-  //   correnteMediaConsumo       = Ah_total / (tempo_consumo_s / 3600)
+  //   correnteMediaConsumo = Ah_total / (tempo_consumo_s / 3600)
   const tempo_consumo_s = resultados.reduce(
     (s, r, i) => (r.i_bateria_a > 0 ? s + trechos[i].tempo_total_s : s),
     0,

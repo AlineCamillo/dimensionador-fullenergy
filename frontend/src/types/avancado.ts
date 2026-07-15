@@ -25,6 +25,12 @@ export interface EquipamentoInput {
   area_frontal: number;
   /** Rendimento total do sistema motor + transmissão (0 a 1) */
   rendimento: number;
+  /**
+   * Potência nominal do motor (kW).
+   * Usado para calcular a corrente mínima de operação por trecho.
+   * 0 = não aplicar piso de corrente.
+   */
+  potencia_motor_kw?: number;
   /** Coeficiente de resistência ao rolamento (adimensional, ex: 0.013) */
   crr: number;
   /** Coeficiente de arrasto aerodinâmico Cd (adimensional, ex: 0.30) */
@@ -177,6 +183,12 @@ export interface EquipamentoFormulario {
   area_frontal: number;
   /** Rendimento total do sistema motor + transmissão (0 a 1) */
   rendimento: number;
+  /**
+   * Potência nominal do motor (kW).
+   * Usado para calcular a corrente mínima de operação por trecho.
+   * 0 = não aplicar piso de corrente.
+   */
+  potencia_motor_kw?: number;
   /** Coeficiente de resistência ao rolamento */
   crr: number;
   // ── Parâmetros avançados de engenharia (seção recolhível) ──
@@ -197,6 +209,7 @@ export function formularioParaEquipamento(f: EquipamentoFormulario): Equipamento
     reducao:           f.reducao,
     area_frontal:      f.area_frontal,
     rendimento:        f.rendimento,
+    potencia_motor_kw: f.potencia_motor_kw,
     crr:               f.crr,
     cd:                f.cd,
     den_ar:            f.den_ar,

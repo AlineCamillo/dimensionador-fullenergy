@@ -206,13 +206,22 @@ export default function AvancadoEquipamentoForm({
             value={value.rendimento}
             onChange={(e) => set("rendimento", Number(e.target.value))}
           />
+          <Input
+            label="Potência do Motor (kW)"
+            type="number"
+            step="0.1"
+            min="0"
+            value={value.potencia_motor_kw}
+            onChange={(e) => set("potencia_motor_kw", Number(e.target.value))}
+          />
 
         </div>
 
-        {/* Rendimento — referência */}
+        {/* Referências */}
         <p className="text-xs text-fullenergy-gray">
           Rendimento global do conjunto: Bateria → Controlador → Motor → Transmissão → Rodas.
           Valor típico: 0,70–0,90 para sistemas industriais. O CRR é definido individualmente em cada trecho.
+          A Potência do Motor define um piso mínimo de corrente por trecho (0 = sem piso).
         </p>
 
         {/* Parâmetros Avançados de Engenharia (recolhível) */}

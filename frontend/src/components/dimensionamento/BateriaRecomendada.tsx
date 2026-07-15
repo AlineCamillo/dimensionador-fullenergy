@@ -202,9 +202,9 @@ export default function BateriaRecomendada({ celula, resumo, modoAvancado = fals
             helper={`Pack ${fmt(celula.cont_pack)} A menos exigido ${fmt(resumo.i_max)} A`}
           />
           <Card
-            label={modoAvancado ? "Corrente Media de Consumo" : "Corrente Maxima Exigida"}
+            label={modoAvancado ? "Corrente Média Est. de Consumo Ativo" : "Corrente Maxima Exigida"}
             value={`${fmt(resumo.i_max)} A`}
-            helper={modoAvancado ? "Média das correntes de consumo" : undefined}
+            helper={modoAvancado ? "Estimativa média de consumo no percurso" : undefined}
           />
           {!modoAvancado && (
             <Card
@@ -213,7 +213,7 @@ export default function BateriaRecomendada({ celula, resumo, modoAvancado = fals
             />
           )}
         </div>
-      </SubSection>
+            </SubSection>
 
     </div>
   );

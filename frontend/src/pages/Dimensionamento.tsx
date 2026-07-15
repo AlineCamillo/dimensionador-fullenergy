@@ -115,6 +115,7 @@ const EQUIPAMENTO_FORM_PADRAO: EquipamentoFormulario = {
   reducao:    15,
   area_frontal: 1.5,
   rendimento: 0.90,
+  potencia_motor_kw: 0,
   crr:        0.013,
   cd:         0.30,
   den_ar:     1.205,
@@ -707,16 +708,16 @@ export default function Dimensionamento() {
                   Parâmetros do Percurso
                 </h2>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  {/* Corrente Média — destaque principal */}
+                  {/* Corrente Média Estimada — destaque principal */}
                   <div className="rounded-lg border border-fullenergy-yellow bg-[#FEFCE8] p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
-                      Corrente Média de Consumo
+                      Corrente Média Est. de Consumo Ativo
                     </p>
                     <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
                       {fmt(resultadoAvancado.correnteMediaConsumo)} A
                     </p>
                     <p className="mt-0.5 text-xs text-fullenergy-gray">
-                      Somente trechos com consumo ativo
+                      Estimativa média de consumo no percurso
                     </p>
                   </div>
                   <div className="rounded-lg border border-gray-200 p-4">
@@ -794,7 +795,7 @@ export default function Dimensionamento() {
                     <thead>
                       <tr className="border-b border-gray-200 text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
                         <th className="pb-2 pr-4">Nome da Operação</th>
-                        <th className="pb-2 pr-4 text-right">Corrente Média (A)</th>
+                        <th className="pb-2 pr-4 text-right">Corrente Est. (A)</th>
                         <th className="pb-2 pr-4 text-right">Consumo (Ah)</th>
                         <th className="pb-2 pr-4 text-right">Energia (kWh)</th>
                         <th className="pb-2 text-right">Potência (W)</th>
@@ -819,7 +820,7 @@ export default function Dimensionamento() {
                               )}
                             </td>
                             <td className="py-2 pr-4 text-right tabular-nums">
-                              {fmt(Math.abs(t.i_bateria_a))}
+                              {fmt(t.i_bateria_a)}
                             </td>
                             <td className="py-2 pr-4 text-right tabular-nums">
                               {fmt(t.consumo_ah, 4)}
