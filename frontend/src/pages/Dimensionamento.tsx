@@ -173,6 +173,7 @@ export default function Dimensionamento() {
   const [elevacaoForm, setElevacaoForm] = useState<ElevacaoInput>(ELEVACAO_PADRAO);
   const [resultadoElevacao, setResultadoElevacao] =
     useState<ElevacaoResultado | null>(null);
+  const [tempoDesejadoOperacao_h, setTempoDesejadoOperacao_h] = useState<number>(3);
 
   // ── Estado: Projetos Salvos ─────────────────────────────────────────────────
   const { salvar: salvarProjetoNoBanco } = useProjetos();
@@ -278,6 +279,7 @@ export default function Dimensionamento() {
     const { resumo, opcoes } = montarResumoAvancado(
       cicloParaDimensionamento,
       equipamentoForm.tensao,
+      tempoDesejadoOperacao_h,
     );
     const modo =
       modoSelecaoAvancado === "automatica"
@@ -864,14 +866,83 @@ export default function Dimensionamento() {
               </div>
 
 
-              {/* ── Seleção de Célula ────────────────────────────────────────── */}
-              <SelecaoCelulaForm
-                modo={modoSelecaoAvancado}
-                onChangeModo={setModoSelecaoAvancado}
-                celulaManual={celulaManualAvancado}
-                onChangeCelulaManual={setCelulaManualAvancado}
-                opcoes={resultadoSelecaoAvancado?.opcoes ?? []}
-              />
+              {/* ── 5. Objetivo da Operação ──────────────────────────────────── */}
+              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <h2 className="font-heading text-lg font-semibold text-fullenergy-black">
+                  5. Objetivo da Operação
+                </h2>
+                <p className="mt-1 text-sm text-fullenergy-gray">
+                  Informe por quantas horas a bateria deverá atender continuamente à operação representada pelo percurso.
+                </p>
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  {/* Campo de entrada */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
+                      Tempo Desejado de Operação (h)
+                    </label>
+                    <input
+                      type="number"
+                      min="0.1"
+                      step="0.5"
+                      value={tempoDesejadoOperacao_h}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!isNaN(v) && v >= 0.1) setTempoDesejadoOperacao_h(v);
+                      }}
+                      className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-fullenergy-yellow focus:outline-none focus:ring-1 focus:ring-fullenergy-yellow"
+                    />
+                    <p className="mt-1 text-xs text-fullenergy-gray">
+                      Ex: 3, 4, 4,5, 5 horas
+                    </p>
+                  </div>
+
+                  {/* Corrente Média do Ciclo */}
+                  {resultadoAvancado && resultadoAvancado.tempo_total_s > 0 && (() => {
+                    const corrMediaCiclo = resultadoAvancado.ah_total / (resultadoAvancado.tempo_total_s / 3600);
+                    const capTeorica = corrMediaCiclo * tempoDesejadoOperacao_h;
+                    return (
+                      <>
+                        <div className="rounded-lg border border-gray-200 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
+                            Corrente Média do Ciclo
+                          </p>
+                          <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
+                            {fmt(corrMediaCiclo)} A
+                          </p>
+                          <p className="mt-0.5 text-xs text-fullenergy-gray">
+                            Média sobre o ciclo completo ({fmt(resultadoAvancado.ah_total, 4)} Ah ÷ {fmt(resultadoAvancado.tempo_total_s / 3600, 4)} h)
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-fullenergy-yellow bg-[#FEFCE8] p-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-fullenergy-gray">
+                            Capacidade Teórica Necessária
+                          </p>
+                          <p className="mt-1 font-heading text-2xl font-bold text-fullenergy-black">
+                            {fmt(capTeorica)} Ah
+                          </p>
+                          <p className="mt-0.5 text-xs text-fullenergy-gray">
+                            {fmt(corrMediaCiclo)} A × {fmt(tempoDesejadoOperacao_h)} h
+                          </p>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* ── 6. Seleção de Célula ─────────────────────────────────────── */}
+              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <h2 className="mb-4 font-heading text-lg font-semibold text-fullenergy-black">
+                  6. Seleção da Célula
+                </h2>
+                <SelecaoCelulaForm
+                  modo={modoSelecaoAvancado}
+                  onChangeModo={setModoSelecaoAvancado}
+                  celulaManual={celulaManualAvancado}
+                  onChangeCelulaManual={setCelulaManualAvancado}
+                  opcoes={resultadoSelecaoAvancado?.opcoes ?? []}
+                />
+              </div>
 
               {/* ── Botão Dimensionar Bateria ─────────────────────────────────── */}
               <div className="flex flex-wrap items-center gap-3">

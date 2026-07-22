@@ -77,27 +77,44 @@ export function calcularOpcoes(
 /**
  * Constrói ResumoDimensionamento + opcoes a partir do resultado do ciclo avançado.
  *
- * Dimensiona a bateria para suportar exatamente o percurso analisado:
- *   ah_necessario = ciclo.ah_total  (consumo real do percurso)
+ * Escala a capacidade da bateria para o tempo desejado de operação:
  *
- * Para o caso de Plataforma Elevatória, ciclo.ah_total já inclui o consumo
- * combinado (deslocamento + elevação), calculado antes da chamada.
+ *   correnteMediaCiclo  = ah_total × 3600 / tempo_total_s
+ *     (corrente média sobre o ciclo COMPLETO — inclui tempo de retorno / espera)
+ *
+ *   capacidadeTeoricaAh = correnteMediaCiclo × tempoDesejadoOperacao_h
+ *     (capacidade mínima para atender continuamente o tempo desejado)
+ *
+ * A autonomia estimada exibida na célula reflete correnteMediaCiclo:
+ *   autonomia = capacidade_pack / correnteMediaCiclo
+ *
+ * Corrente de consumo ativo (correnteMediaConsumo) é usada para verificar
+ * se a célula suporta a corrente contínua exigida pelos trechos de tração.
  */
 export function montarResumoAvancado(
   ciclo: ResultadoCicloAvancado,
   tensao: number,
+  tempoDesejadoOperacao_h: number,
 ): ResultadoOpcoes {
-  const ah_necessario = ciclo.ah_total;
+  // Corrente média sobre o ciclo completo (inclui retorno, espera, descida livre)
+  const correnteMediaCiclo =
+    ciclo.tempo_total_s > 0
+      ? ciclo.ah_total / (ciclo.tempo_total_s / 3600)
+      : 0;
+
+  // Capacidade teórica: corrente média do ciclo × tempo desejado de operação
+  const capacidadeTeoricaAh = correnteMediaCiclo * tempoDesejadoOperacao_h;
+  const ah_necessario = capacidadeTeoricaAh;
 
   const serie = seriePorTensao(tensao);
   const [v_nom, v_max, v_min] = tensoesPack(serie);
 
   const resumo: ResumoDimensionamento = {
     potencia_total: ciclo.p_max_w,
-    // No modo Avançado, usar Corrente Média de Consumo (somente trechos com consumo) para seleção de células.
-    // A corrente de pico não é modelada neste modo.
+    // i_max: corrente de consumo ativo → dimensiona corrente contínua da célula
     i_max:          ciclo.correnteMediaConsumo,
-    i_media:        ciclo.correnteMediaConsumo,
+    // i_media: corrente média do ciclo completo → base da autonomia estimada
+    i_media:        correnteMediaCiclo,
     ah_por_consumo: ah_necessario,
     ah_necessario,
     kwh_necessario: (ah_necessario * tensao) / 1000,
@@ -108,7 +125,14 @@ export function montarResumoAvancado(
   };
 
   const opcoes = CELULAS.map((celula) =>
-    calcularOpcaoCelula(celula, serie, v_nom, ah_necessario, ciclo.correnteMediaConsumo, ciclo.correnteMediaConsumo),
+    calcularOpcaoCelula(
+      celula,
+      serie,
+      v_nom,
+      ah_necessario,
+      ciclo.correnteMediaConsumo,  // i_max: corrente de consumo ativo
+      correnteMediaCiclo,           // i_media: corrente média do ciclo (autonomia)
+    ),
   );
 
   return { resumo, opcoes };
